@@ -43,7 +43,6 @@ func Decode(bencode []byte) (BDict, error) {
 				result[key] = value
 			}
 		} else if equal(token, 'L') {
-			// isKey = true
 		}
 	}
 
@@ -56,7 +55,7 @@ func findString(i int, s []byte) (string, int, error) {
 		return "", -1, err
 	}
 
-	return string(s[i+idx : i+idx+len]), idx, nil
+	return string(s[i+idx : i+idx+len]), len + idx - 1, nil
 }
 
 func findStringLength(s []byte) (int, int, error) {
