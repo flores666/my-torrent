@@ -19,24 +19,21 @@ func Decode(bencode []byte) (BDict, error) {
 			continue
 		} else if equal(token, 'i') { // only string can be a key, so always set value
 			value, idx, err := findInt(bencode[i+1:])
-
 			if err != nil {
-				return BDict{}, fmt.Errorf("Error while decoding, index = %d, error = %s", i, err.Error())
+				return BDict{}, newError(i, err)
 			}
 
 			i += idx
-
 			result[key] = value
 			isKey = true
 		} else if unicode.IsDigit(rune(token)) {
-			len, idx, err := findStringLength(bencode[i:])
+			value, idx, err := findString(i, bencode)
 			if err != nil {
 				fmt.Printf("%s\n", result.GetString())
-				return BDict{}, fmt.Errorf("Error while decoding, index = %d, error = %s", i, err.Error())
+				return BDict{}, newError(i, err)
 			}
 
 			i += idx
-			value := string(bencode[i : i+len])
 
 			if isKey {
 				key = value
@@ -45,14 +42,21 @@ func Decode(bencode []byte) (BDict, error) {
 			} else {
 				result[key] = value
 			}
-
-			continue
 		} else if equal(token, 'L') {
 			// isKey = true
 		}
 	}
 
 	return result, nil
+}
+
+func findString(i int, s []byte) (string, int, error) {
+	len, idx, err := findStringLength(s[i:])
+	if err != nil {
+		return "", -1, err
+	}
+
+	return string(s[i+idx : i+idx+len]), idx, nil
 }
 
 func findStringLength(s []byte) (int, int, error) {
@@ -87,4 +91,8 @@ func findInt(s []byte) (BInt, int, error) {
 
 func equal(token byte, symbol rune) bool {
 	return rune(token) == rune(symbol)
+}
+
+func newError(i int, err error) error {
+	return fmt.Errorf("Error while decoding, index = %d, error = %s", i, err.Error())
 }
