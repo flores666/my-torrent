@@ -2,7 +2,8 @@ package bencode
 
 import (
 	"errors"
-	"maps"
+	"fmt"
+	"reflect"
 	"strconv"
 	"unicode"
 )
@@ -14,6 +15,10 @@ func Decode(bencode []byte) ([]BValue, error) {
 		found := getBValue(bencode, i)
 		if found.Error != nil {
 			return result, found.Error
+		}
+
+		if found.Value == nil {
+			return result, nil
 		}
 
 		i += found.BytesVisited
@@ -31,7 +36,7 @@ func getBValue(bencode []byte, i int) FoundValue {
 		return FoundValue{
 			Value:        nil,
 			BytesVisited: -1,
-			Error:        errors.New("End of value"),
+			Error:        nil,
 		}
 	case ch == 'd':
 		return findDictionary(i, bencode)
@@ -50,12 +55,46 @@ func getBValue(bencode []byte, i int) FoundValue {
 	}
 }
 
-func appendDictionary(from, to *BDict) {
-	maps.Copy(*to, *from)
-}
+func findDictionary(from int, bencode []byte) FoundValue {
+	result := make(BDict)
+	bencode = bencode[from+1 : len(bencode)-1]
+	isKey := true
+	key := ""
+	visited := 1
 
-func findDictionary(i int, s []byte) FoundValue {
-	return FoundValue{}
+	for i := 0; i < len(bencode); i++ {
+		found := getBValue(bencode, i)
+		if found.Error != nil {
+			return found
+		}
+
+		i += found.BytesVisited
+		visited += found.BytesVisited
+
+		if isKey {
+			bStringKey, ok := found.Value.(BString)
+			if ok {
+				key = string(bStringKey)
+				result[key] = struct{}{}
+				isKey = false
+			} else {
+				return FoundValue{
+					Value:        result,
+					BytesVisited: -1,
+					Error:        fmt.Errorf("Invalid key type - %s, must be string", reflect.TypeOf(found.Value)),
+				}
+			}
+		} else {
+			result[key] = found.Value
+			isKey = true
+		}
+	}
+
+	return FoundValue{
+		Value:        result,
+		BytesVisited: visited + 1,
+		Error:        nil,
+	}
 }
 
 func findList(from int, bencode []byte) FoundValue {
@@ -122,7 +161,7 @@ func findInt(from int, s []byte) FoundValue {
 			res, err := strconv.Atoi(string(result))
 			return FoundValue{
 				Value:        BInt(res),
-				BytesVisited: i,
+				BytesVisited: i + 1,
 				Error:        err,
 			}
 		} else if unicode.IsDigit(rune(ch)) {
