@@ -42,6 +42,10 @@ func (d *BList) GetString() string {
 }
 
 func SprintfBValue(value BValue) string {
+	if value == nil {
+		return "nil"
+	}
+
 	if dict, ok := value.(BDict); ok {
 		return dict.GetString()
 	}
@@ -68,5 +72,5 @@ func SprintfBValue(value BValue) string {
 		return sb.String()
 	}
 
-	return "unknown"
+	return fmt.Sprintf("%s", value)
 }
