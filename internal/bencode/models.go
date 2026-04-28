@@ -1,7 +1,9 @@
 package bencode
 
 import (
+	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 )
 
@@ -12,7 +14,7 @@ type BString []byte
 type BList []BValue
 
 type FoundValue struct {
-	Value        BValue
+	Value        any
 	BytesVisited int
 	Error        error
 }
@@ -31,6 +33,16 @@ func (d *BDict) GetString() string {
 	return sb.String()
 }
 
+func (d *BDict) GetUnderlyingTypedValue() map[string]any {
+	res := make(map[string]any)
+
+	for k, v := range *d {
+		res[k] = GetUnderlyingTypedValue(v)
+	}
+
+	return res
+}
+
 func (d *BList) GetString() string {
 	sb := strings.Builder{}
 
@@ -39,6 +51,16 @@ func (d *BList) GetString() string {
 	}
 
 	return sb.String()
+}
+
+func (d *BList) GetUnderlyingTypedValue() []any {
+	res := make([]any, 0)
+
+	for _, v := range *d {
+		res = append(res, GetUnderlyingTypedValue(v))
+	}
+
+	return res
 }
 
 func SprintfBValue(value BValue) string {
@@ -55,11 +77,11 @@ func SprintfBValue(value BValue) string {
 	}
 
 	if intVal, ok := value.(BInt); ok {
-		return fmt.Sprintf("%d", intVal)
+		return fmt.Sprintf("%d", int(intVal))
 	}
 
 	if strVal, ok := value.(BString); ok {
-		return fmt.Sprintf("%s", strVal)
+		return strVal.ToString()
 	}
 
 	if arr, ok := value.([]BValue); ok {
@@ -73,4 +95,62 @@ func SprintfBValue(value BValue) string {
 	}
 
 	return fmt.Sprintf("%s", value)
+}
+
+func GetUnderlyingTypedValue(value BValue) any {
+	if value == nil {
+		return nil
+	}
+
+	if val, err := getSimpleTypedValue(value); err == nil {
+		return val
+	}
+
+	if dict, ok := value.(BDict); ok {
+		return dict.GetUnderlyingTypedValue()
+	}
+
+	if list, ok := value.(BList); ok {
+		return list.GetUnderlyingTypedValue()
+	}
+
+	if intVal, ok := value.(BInt); ok {
+		return int(intVal)
+	}
+
+	if strVal, ok := value.(BString); ok {
+		return strVal.ToString()
+	}
+
+	if arr, ok := value.([]BValue); ok {
+		res := make([]any, 0)
+
+		for _, v := range arr {
+			res = append(res, GetUnderlyingTypedValue(v))
+		}
+
+		return res
+	}
+
+	panic(fmt.Sprintf("Value = %s, Type = %s", SprintfBValue(value), reflect.TypeOf(value).String()))
+}
+
+func getSimpleTypedValue(value BValue) (any, error) {
+	if val, ok := value.(int); ok {
+		return val, nil
+	}
+
+	if val, ok := value.(string); ok {
+		return val, nil
+	}
+
+	if val, ok := value.([]any); ok {
+		return val, nil
+	}
+
+	if val, ok := value.(map[string]any); ok {
+		return val, nil
+	}
+
+	return nil, errors.New("Not simple type")
 }

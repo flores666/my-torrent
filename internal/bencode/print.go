@@ -1,9 +1,11 @@
 package bencode
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 func PrintParsed(values []BValue) {
-	for _, val := range values {
-		fmt.Println(SprintfBValue(val))
-	}
+	bytes, _ := json.Marshal(values)
+	fmt.Println(string(bytes))
 }

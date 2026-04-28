@@ -28,7 +28,7 @@ func Decode(bencode []byte) ([]BValue, error) {
 	return result, nil
 }
 
-func getBValue(bencode []byte, i int) FoundValue {
+func getBValue(bencode []byte, i int) (res FoundValue) {
 	ch := bencode[i]
 	switch {
 	case ch == 'e':
@@ -65,7 +65,7 @@ func findDictionary(from int, bencode []byte) FoundValue {
 		if bencode[i] == 'e' {
 			return FoundValue{
 				Value:        result,
-				BytesVisited: i,
+				BytesVisited: i + 1,
 				Error:        nil,
 			}
 		}
@@ -92,7 +92,7 @@ func findDictionary(from int, bencode []byte) FoundValue {
 				}
 			}
 		} else {
-			result[key] = found.Value
+			result[key] = GetUnderlyingTypedValue(found.Value)
 			isKey = true
 		}
 	}
@@ -105,27 +105,28 @@ func findDictionary(from int, bencode []byte) FoundValue {
 }
 
 func findList(from int, bencode []byte) FoundValue {
-	result := make([]BValue, 0)
-	visited := 1 // skip l
+	result := make([]any, 0)
+	visited := 1
 	bencode = bencode[from:]
 
 	for i := 1; i < len(bencode); {
 		if bencode[i] == 'e' {
 			return FoundValue{
 				Value:        result,
-				BytesVisited: i,
+				BytesVisited: i + 1,
 				Error:        nil,
 			}
 		}
 
 		found := getBValue(bencode, i)
+
 		if found.Error != nil {
 			return found
 		}
 
 		i += found.BytesVisited
 		visited += found.BytesVisited
-		result = append(result, found.Value)
+		result = append(result, GetUnderlyingTypedValue(found.Value))
 	}
 
 	return FoundValue{
