@@ -8,7 +8,7 @@ import (
 
 type File struct {
 	Announce     string // Url of the tracker
-	Info         torrentInfo
+	Info         *torrentInfo
 	Comment      string
 	CreatedBy    string
 	CreationDate time.Time
@@ -26,14 +26,6 @@ type torrentFile struct {
 	Length int64    // size of the file in bytes (only when one file is being shared though)
 	Path   []string // A list of strings corresponding to subdirectory names, the last of which is the actual file name
 }
-
-const (
-	announce     = "announce"
-	info         = "info"
-	comment      = "comment"
-	createdBy    = "created by"
-	creationDate = "creation date"
-)
 
 func CreateFile(root bencode.BDict) *File {
 	file := File{}
@@ -58,10 +50,43 @@ func CreateFile(root bencode.BDict) *File {
 			} else if val, err := bencode.GetTypedValue[int](v); err == nil {
 				file.CreationDate = time.UnixMicro(int64(val))
 			}
+		case info:
+			if val, err := bencode.GetTypedValue[map[string]any](v); err == nil {
+				file.Info = buildInfo(val)
+			}
 		default:
 			fmt.Printf("Warning: Could not determine field with name = %s\n", k)
 		}
 	}
 
 	return &file
+}
+
+func buildInfo(m map[string]any) *torrentInfo {
+	info := torrentInfo{}
+
+	for k, v := range m {
+		switch k {
+		case length:
+			if val, err := bencode.GetTypedValue[int64](v); err == nil {
+				info.Length = val
+			}
+		case name:
+			if val, err := bencode.GetTypedValue[string](v); err == nil {
+				info.Name = val
+			}
+		case pieceLength:
+			if val, err := bencode.GetTypedValue[int64](v); err == nil {
+				info.PieceLength = val
+			}
+		case pieces:
+			if val, err := bencode.GetTypedValue[[]byte](v); err == nil {
+				info.Pieces = val
+			}
+		default:
+			fmt.Printf("Warning: Could not determine field with name = %s\n", k)
+		}
+	}
+
+	return &info
 }

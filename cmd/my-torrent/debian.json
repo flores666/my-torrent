@@ -1,0 +1,13 @@
+{
+  "Announce": "http://bttracker.debian.org:6969/announce",
+  "Info": {
+    "Files": null,
+    "Length": 0,
+    "Name": "debian-13.4.0-amd64-netinst.iso",
+    "PieceLength": 0,
+    "Pieces": null
+  },
+  "Comment": "Debian CD from cdimage.debian.org",
+  "CreatedBy": "mktorrent 1.1",
+  "CreationDate": "1970-01-01T03:29:33.496473+03:00"
+}
