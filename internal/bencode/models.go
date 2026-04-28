@@ -97,6 +97,17 @@ func SprintfBValue(value BValue) string {
 	return fmt.Sprintf("%s", value)
 }
 
+func GetTypedValue[T any](value BValue) (T, error) {
+	val := GetUnderlyingTypedValue(value)
+
+	if res, ok := val.(T); ok {
+		return res, nil
+	}
+
+	var zeroValue T
+	return zeroValue, fmt.Errorf("cannot convert %s to type %s", SprintfBValue(value), reflect.TypeFor[T]().String())
+}
+
 func GetUnderlyingTypedValue(value BValue) any {
 	if value == nil {
 		return nil

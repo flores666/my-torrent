@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"my-torrent/internal/bencode"
+	"my-torrent/internal/torrent"
 	"os"
 )
 
@@ -47,5 +48,12 @@ func main() {
 	err = os.WriteFile("debian.json", bytes, 0644)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	if dict, ok := res[0].(bencode.BDict); ok {
+		tf := torrent.CreateFile(dict)
+		byte, _ := json.Marshal(tf)
+
+		fmt.Printf("TorrentFile: %s\n", string(byte))
 	}
 }
