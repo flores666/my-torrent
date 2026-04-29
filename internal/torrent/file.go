@@ -33,21 +33,21 @@ func CreateFile(root bencode.BDict) *File {
 	for k, v := range root {
 		switch k {
 		case announce:
-			if val, err := bencode.GetTypedValue[string](v); err == nil {
-				file.Announce = val
+			if val, err := bencode.GetTypedValue[[]byte](v); err == nil {
+				file.Announce = string(val)
 			}
 		case comment:
-			if val, err := bencode.GetTypedValue[string](v); err == nil {
-				file.Comment = val
+			if val, err := bencode.GetTypedValue[[]byte](v); err == nil {
+				file.Comment = string(val)
 			}
 		case createdBy:
-			if val, err := bencode.GetTypedValue[string](v); err == nil {
-				file.CreatedBy = val
+			if val, err := bencode.GetTypedValue[[]byte](v); err == nil {
+				file.CreatedBy = string(val)
 			}
 		case creationDate:
 			if val, err := bencode.GetTypedValue[int64](v); err == nil {
 				file.CreationDate = time.UnixMicro(val)
-			} else if val, err := bencode.GetTypedValue[int](v); err == nil {
+			} else if val, err := bencode.GetTypedValue[int64](v); err == nil {
 				file.CreationDate = time.UnixMicro(int64(val))
 			}
 		case info:
@@ -72,8 +72,8 @@ func buildInfo(m map[string]any) *torrentInfo {
 				info.Length = val
 			}
 		case name:
-			if val, err := bencode.GetTypedValue[string](v); err == nil {
-				info.Name = val
+			if val, err := bencode.GetTypedValue[[]byte](v); err == nil {
+				info.Name = string(val)
 			}
 		case pieceLength:
 			if val, err := bencode.GetTypedValue[int64](v); err == nil {
@@ -81,6 +81,11 @@ func buildInfo(m map[string]any) *torrentInfo {
 			}
 		case pieces:
 			if val, err := bencode.GetTypedValue[[]byte](v); err == nil {
+				if len(val)%20 != 0 {
+					fmt.Println("invalid pieces length")
+					return nil
+				}
+
 				info.Pieces = val
 			}
 		default:

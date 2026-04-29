@@ -148,7 +148,7 @@ func findString(i int, s []byte) FoundValue {
 
 	idx += 1
 	return FoundValue{
-		Value:        BString(string(s[i+idx : i+idx+len])),
+		Value:        BString(s[i+idx : i+idx+len]),
 		BytesVisited: len + idx,
 		Error:        nil,
 	}
@@ -174,7 +174,7 @@ func findInt(from int, s []byte) FoundValue {
 
 	for i, ch := range s[from:] {
 		if ch == 'e' {
-			res, err := strconv.Atoi(string(result))
+			res, err := strconv.ParseInt(string(result), 10, 64)
 			return FoundValue{
 				Value:        BInt(res),
 				BytesVisited: i + 1,

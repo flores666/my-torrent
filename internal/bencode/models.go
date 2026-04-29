@@ -8,7 +8,7 @@ import (
 )
 
 type BValue any
-type BInt int
+type BInt int64
 type BDict map[string]BValue
 type BString []byte
 type BList []BValue
@@ -17,10 +17,6 @@ type FoundValue struct {
 	Value        any
 	BytesVisited int
 	Error        error
-}
-
-func (bs *BString) ToString() string {
-	return string(*bs)
 }
 
 func (d *BDict) GetString() string {
@@ -77,11 +73,11 @@ func SprintfBValue(value BValue) string {
 	}
 
 	if intVal, ok := value.(BInt); ok {
-		return fmt.Sprintf("%d", int(intVal))
+		return fmt.Sprintf("%d", int64(intVal))
 	}
 
 	if strVal, ok := value.(BString); ok {
-		return strVal.ToString()
+		return string(strVal)
 	}
 
 	if arr, ok := value.([]BValue); ok {
@@ -126,11 +122,11 @@ func GetUnderlyingTypedValue(value BValue) any {
 	}
 
 	if intVal, ok := value.(BInt); ok {
-		return int(intVal)
+		return int64(intVal)
 	}
 
 	if strVal, ok := value.(BString); ok {
-		return strVal.ToString()
+		return []byte(strVal)
 	}
 
 	if arr, ok := value.([]BValue); ok {
@@ -147,7 +143,15 @@ func GetUnderlyingTypedValue(value BValue) any {
 }
 
 func getSimpleTypedValue(value BValue) (any, error) {
-	if val, ok := value.(int); ok {
+	if val, ok := value.(int64); ok {
+		return val, nil
+	}
+
+	if val, ok := value.(map[string]any); ok {
+		return val, nil
+	}
+
+	if val, ok := value.([]byte); ok {
 		return val, nil
 	}
 
@@ -156,10 +160,6 @@ func getSimpleTypedValue(value BValue) (any, error) {
 	}
 
 	if val, ok := value.([]any); ok {
-		return val, nil
-	}
-
-	if val, ok := value.(map[string]any); ok {
 		return val, nil
 	}
 

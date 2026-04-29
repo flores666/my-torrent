@@ -40,20 +40,13 @@ func main() {
 		log.Fatal(err)
 	}
 
-	bytes, err := json.Marshal(res)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = os.WriteFile("debian.json", bytes, 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	if dict, ok := res[0].(bencode.BDict); ok {
 		tf := torrent.CreateFile(dict)
-		byte, _ := json.Marshal(tf)
+		bytes, _ := json.Marshal(tf)
 
-		fmt.Printf("TorrentFile: %s\n", string(byte))
+		err = os.WriteFile("debian.json", bytes, 0644)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }
