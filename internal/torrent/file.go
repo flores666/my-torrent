@@ -12,6 +12,7 @@ type File struct {
 	Comment      string
 	CreatedBy    string
 	CreationDate time.Time
+	UrlList      []string
 }
 
 type torrentInfo struct {
@@ -54,6 +55,22 @@ func CreateFile(root bencode.BDict) *File {
 			if val, err := bencode.GetTypedValue[map[string]any](v); err == nil {
 				file.Info = buildInfo(val)
 			}
+		case urlList:
+			val, err := bencode.GetTypedValue[[]interface{}](v)
+			if err != nil {
+				fmt.Println(err.Error())
+				break
+			}
+
+			urlList := make([]string, 0, len(val))
+
+			for _, item := range val {
+				b := item.([]byte)
+
+				urlList = append(urlList, string(b))
+			}
+
+			file.UrlList = urlList
 		default:
 			fmt.Printf("Warning: Could not determine field with name = %s\n", k)
 		}
@@ -88,10 +105,51 @@ func buildInfo(m map[string]any) *torrentInfo {
 
 				info.Pieces = val
 			}
+		case files:
+			if val, err := bencode.GetTypedValue[[]map[string]any](v); err == nil {
+				info.Files = buildFiles(val)
+			}
 		default:
 			fmt.Printf("Warning: Could not determine field with name = %s\n", k)
 		}
 	}
 
 	return &info
+}
+
+func buildFiles(fm []map[string]any) []torrentFile {
+	files := make([]torrentFile, 0, len(fm))
+
+	for _, fileMap := range fm {
+		file := torrentFile{}
+
+		for k, v := range fileMap {
+			switch k {
+			case length:
+				if val, err := bencode.GetTypedValue[int64](v); err == nil {
+					file.Length = val
+				}
+			case path:
+				if val, err := bencode.GetTypedValue[[][]byte](v); err == nil {
+					file.Path = findFilePaths(val)
+				}
+			default:
+				fmt.Printf("Warning: Could not determine field with name = %s\n", k)
+			}
+		}
+
+		files = append(files, file)
+	}
+
+	return files
+}
+
+func findFilePaths(bytes [][]byte) []string {
+	paths := make([]string, 0, len(bytes))
+
+	for _, v := range bytes {
+		paths = append(paths, string(v))
+	}
+
+	return paths
 }

@@ -20,3 +20,5 @@ const (
 	// length declared
 	path = "path"
 )
+
+const urlList = "url-list"
