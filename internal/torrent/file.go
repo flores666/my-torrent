@@ -24,7 +24,6 @@ type torrentInfo struct {
 	Name        string        // suggested name for file or root directory
 	PieceLength int64         // size of each piece in bytes (commonly 256 KiB)
 	Pieces      []byte        // concatenated SHA-1 hashes of all pieces (20 bytes each)
-	PieceHashes [][]byte      // slice of individual 20-byte SHA-1 piece hashes
 	Private     bool          // private torrent flag (inherited or duplicated from root info)
 	MD5Sum      []byte        // MD5 checksum (legacy, rarely used in modern torrents)
 }
