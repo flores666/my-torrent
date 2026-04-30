@@ -7,25 +7,32 @@ import (
 )
 
 type File struct {
-	Announce     string // Url of the tracker
-	Info         *torrentInfo
-	Comment      string
-	CreatedBy    string
-	CreationDate time.Time
-	UrlList      []string
+	Announce     string       // URL of the main tracker (required field)
+	AnnounceList [][]string   // list of backup trackers (tracker tiers for redundancy)
+	Info         *torrentInfo // core metadata of the torrent (files, pieces, name, etc.)
+	HttpSeeds    []string
+	Comment      string    // optional comment from torrent creator
+	CreatedBy    string    // name of the program that created the torrent
+	CreationDate time.Time // timestamp when the torrent was created
+	Encoding     string    // string encoding used in the torrent (usually UTF-8)
+	UrlList      []string  // web seed URLs (HTTP/FTP sources for downloading)
 }
 
 type torrentInfo struct {
-	Files       []torrentFile
-	Length      int64
-	Name        string // suggested filename where the file is to be saved (if one file)/suggested directory name where the files are to be saved (if multiple files)
-	PieceLength int64  // number of bytes per piece. This is commonly 28 KiB = 256 KiB = 262,144 B.
-	Pieces      []byte
+	Files       []torrentFile // list of files (used in multi-file torrents)
+	Length      int64         // total size of the file (single-file torrent only)
+	Name        string        // suggested name for file or root directory
+	PieceLength int64         // size of each piece in bytes (commonly 256 KiB)
+	Pieces      []byte        // concatenated SHA-1 hashes of all pieces (20 bytes each)
+	PieceHashes [][]byte      // slice of individual 20-byte SHA-1 piece hashes
+	Private     bool          // private torrent flag (inherited or duplicated from root info)
+	MD5Sum      []byte        // MD5 checksum (legacy, rarely used in modern torrents)
 }
 
 type torrentFile struct {
-	Length int64    // size of the file in bytes (only when one file is being shared though)
-	Path   []string // A list of strings corresponding to subdirectory names, the last of which is the actual file name
+	Length int64    // size of the file in bytes (multi-file torrents only)
+	Path   []string // hierarchical file path (directories + filename)
+	MD5Sum []byte   // MD5 checksum of the file (legacy field, rarely used)
 }
 
 func CreateFile(root bencode.BDict) *File {
@@ -36,6 +43,18 @@ func CreateFile(root bencode.BDict) *File {
 		case announce:
 			if val, err := bencode.GetTypedValue[[]byte](v); err == nil {
 				file.Announce = string(val)
+			}
+		case announceList:
+			if val, err := bencode.GetTypedValue[[][][]byte](v); err == nil {
+				result := make([][]string, len(val))
+
+				for i, tier := range val {
+					for _, tracker := range tier {
+						result[i] = append(result[i], string(tracker))
+					}
+				}
+
+				file.AnnounceList = result
 			}
 		case comment:
 			if val, err := bencode.GetTypedValue[[]byte](v); err == nil {
@@ -48,12 +67,20 @@ func CreateFile(root bencode.BDict) *File {
 		case creationDate:
 			if val, err := bencode.GetTypedValue[int64](v); err == nil {
 				file.CreationDate = time.UnixMicro(val)
-			} else if val, err := bencode.GetTypedValue[int64](v); err == nil {
-				file.CreationDate = time.UnixMicro(int64(val))
+			}
+		case encoding:
+			if val, err := bencode.GetTypedValue[[]byte](v); err == nil {
+				file.Encoding = string(val)
 			}
 		case info:
 			if val, err := bencode.GetTypedValue[map[string]any](v); err == nil {
 				file.Info = buildInfo(val)
+			}
+		case httpseeds:
+			if val, err := bencode.GetTypedValue[[]interface{}](v); err == nil {
+				for _, x := range val {
+					file.HttpSeeds = append(file.HttpSeeds, string(x.([]byte)))
+				}
 			}
 		case urlList:
 			val, err := bencode.GetTypedValue[[]interface{}](v)
@@ -62,15 +89,11 @@ func CreateFile(root bencode.BDict) *File {
 				break
 			}
 
-			urlList := make([]string, 0, len(val))
-
 			for _, item := range val {
 				b := item.([]byte)
 
-				urlList = append(urlList, string(b))
+				file.UrlList = append(file.UrlList, string(b))
 			}
-
-			file.UrlList = urlList
 		default:
 			fmt.Printf("Warning: Could not determine field with name = %s\n", k)
 		}
@@ -109,6 +132,10 @@ func buildInfo(m map[string]any) *torrentInfo {
 			if val, err := bencode.GetTypedValue[[]map[string]any](v); err == nil {
 				info.Files = buildFiles(val)
 			}
+		case private:
+			if val, err := bencode.GetTypedValue[int64](v); err == nil {
+				info.Private = val == 1
+			}
 		default:
 			fmt.Printf("Warning: Could not determine field with name = %s\n", k)
 		}
@@ -132,6 +159,10 @@ func buildFiles(fm []map[string]any) []torrentFile {
 			case path:
 				if val, err := bencode.GetTypedValue[[][]byte](v); err == nil {
 					file.Path = findFilePaths(val)
+				}
+			case md5sum:
+				if val, err := bencode.GetTypedValue[[]byte](v); err == nil {
+					file.MD5Sum = val
 				}
 			default:
 				fmt.Printf("Warning: Could not determine field with name = %s\n", k)

@@ -2,10 +2,14 @@ package torrent
 
 const (
 	announce     = "announce"
+	announceList = "announce-list"
 	info         = "info"
 	comment      = "comment"
 	createdBy    = "created by"
 	creationDate = "creation date"
+	private      = "private"
+	encoding     = "encoding"
+	httpseeds    = "httpseeds"
 )
 
 const (
@@ -18,7 +22,8 @@ const (
 
 const (
 	// length declared
-	path = "path"
+	path   = "path"
+	md5sum = "md5sum"
 )
 
 const urlList = "url-list"
