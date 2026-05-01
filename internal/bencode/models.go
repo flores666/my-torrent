@@ -7,14 +7,17 @@ import (
 	"strings"
 )
 
-type BValue any
+type BValue struct {
+	Value    any
+	Original []byte
+}
 type BInt int64
 type BDict map[string]BValue
 type BString []byte
 type BList []BValue
 
 type FoundValue struct {
-	Value        any
+	Value        BValue
 	BytesVisited int
 	Error        error
 }
@@ -60,27 +63,27 @@ func (d *BList) GetUnderlyingTypedValue() []any {
 }
 
 func SprintfBValue(value BValue) string {
-	if value == nil {
+	if value.Value == nil {
 		return "nil"
 	}
 
-	if dict, ok := value.(BDict); ok {
+	if dict, ok := value.Value.(BDict); ok {
 		return dict.GetString()
 	}
 
-	if list, ok := value.(BList); ok {
+	if list, ok := value.Value.(BList); ok {
 		return list.GetString()
 	}
 
-	if intVal, ok := value.(BInt); ok {
+	if intVal, ok := value.Value.(BInt); ok {
 		return fmt.Sprintf("%d", int64(intVal))
 	}
 
-	if strVal, ok := value.(BString); ok {
+	if strVal, ok := value.Value.(BString); ok {
 		return string(strVal)
 	}
 
-	if arr, ok := value.([]BValue); ok {
+	if arr, ok := value.Value.([]BValue); ok {
 		sb := strings.Builder{}
 
 		for _, v := range arr {
@@ -105,7 +108,7 @@ func GetTypedValue[T any](value BValue) (T, error) {
 }
 
 func GetUnderlyingTypedValue(value BValue) any {
-	if value == nil {
+	if value.Value == nil {
 		return nil
 	}
 
@@ -113,23 +116,23 @@ func GetUnderlyingTypedValue(value BValue) any {
 		return val
 	}
 
-	if dict, ok := value.(BDict); ok {
+	if dict, ok := value.Value.(BDict); ok {
 		return dict.GetUnderlyingTypedValue()
 	}
 
-	if list, ok := value.(BList); ok {
+	if list, ok := value.Value.(BList); ok {
 		return list.GetUnderlyingTypedValue()
 	}
 
-	if intVal, ok := value.(BInt); ok {
+	if intVal, ok := value.Value.(BInt); ok {
 		return int64(intVal)
 	}
 
-	if strVal, ok := value.(BString); ok {
+	if strVal, ok := value.Value.(BString); ok {
 		return []byte(strVal)
 	}
 
-	if arr, ok := value.([]BValue); ok {
+	if arr, ok := value.Value.([]BValue); ok {
 		res := make([]any, 0)
 
 		for _, v := range arr {
@@ -143,23 +146,23 @@ func GetUnderlyingTypedValue(value BValue) any {
 }
 
 func getSimpleTypedValue(value BValue) (any, error) {
-	if val, ok := value.(int64); ok {
+	if val, ok := value.Value.(int64); ok {
 		return val, nil
 	}
 
-	if val, ok := value.(map[string]any); ok {
+	if val, ok := value.Value.(map[string]any); ok {
 		return val, nil
 	}
 
-	if val, ok := value.([]byte); ok {
+	if val, ok := value.Value.([]byte); ok {
 		return val, nil
 	}
 
-	if val, ok := value.(string); ok {
+	if val, ok := value.Value.(string); ok {
 		return val, nil
 	}
 
-	if val, ok := value.([]any); ok {
+	if val, ok := value.Value.([]any); ok {
 		return val, nil
 	}
 

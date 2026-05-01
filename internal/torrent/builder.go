@@ -1,6 +1,8 @@
 package torrent
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"my-torrent/internal/bencode"
@@ -50,6 +52,10 @@ func Build(root bencode.BDict) (*Torrent, error) {
 				if err != nil {
 					return nil, err
 				}
+
+				h := sha1.New()
+				h.Write(v.Original[:20])
+				file.Info.Hash = hex.EncodeToString(h.Sum(nil))
 			}
 		case httpseeds:
 			if val, err := bencode.GetTypedValue[[]interface{}](v); err == nil {
@@ -82,19 +88,19 @@ func buildInfo(m map[string]any) (*TorrentInfo, error) {
 	for k, v := range m {
 		switch k {
 		case length:
-			if val, err := bencode.GetTypedValue[int64](v); err == nil {
+			if val, ok := v.(int64); ok {
 				info.Length = val
 			}
 		case name:
-			if val, err := bencode.GetTypedValue[[]byte](v); err == nil {
+			if val, ok := v.([]byte); ok {
 				info.Name = string(val)
 			}
 		case pieceLength:
-			if val, err := bencode.GetTypedValue[int64](v); err == nil {
+			if val, ok := v.(int64); ok {
 				info.PieceLength = val
 			}
 		case pieces:
-			if val, err := bencode.GetTypedValue[[]byte](v); err == nil {
+			if val, ok := v.([]byte); ok {
 				if len(val)%20 != 0 {
 					return nil, errors.New("invalid pieces len")
 				}
@@ -102,14 +108,15 @@ func buildInfo(m map[string]any) (*TorrentInfo, error) {
 				info.Pieces = val
 			}
 		case files:
-			if val, err := bencode.GetTypedValue[[]map[string]any](v); err == nil {
+			if val, ok := v.([]map[string]any); ok {
+				var err error
 				info.Files, err = buildFiles(val)
 				if err != nil {
 					return nil, err
 				}
 			}
 		case private:
-			if val, err := bencode.GetTypedValue[int64](v); err == nil {
+			if val, ok := v.(int64); ok {
 				info.Private = val == 1
 			}
 		default:
@@ -129,15 +136,15 @@ func buildFiles(fm []map[string]any) ([]TorrentFile, error) {
 		for k, v := range fileMap {
 			switch k {
 			case length:
-				if val, err := bencode.GetTypedValue[int64](v); err == nil {
+				if val, ok := v.(int64); ok {
 					file.Length = val
 				}
 			case path:
-				if val, err := bencode.GetTypedValue[[][]byte](v); err == nil {
+				if val, ok := v.([][]byte); ok {
 					file.Path = findFilePaths(val)
 				}
 			case md5sum:
-				if val, err := bencode.GetTypedValue[[]byte](v); err == nil {
+				if val, ok := v.([]byte); ok {
 					file.MD5Sum = val
 				}
 			default:

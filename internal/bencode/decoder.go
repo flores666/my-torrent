@@ -17,7 +17,7 @@ func Decode(bencode []byte) ([]BValue, error) {
 			return result, found.Error
 		}
 
-		if found.Value == nil {
+		if found.Value.Value == nil {
 			return result, nil
 		}
 
@@ -33,7 +33,7 @@ func getBValue(bencode []byte, i int) (res FoundValue) {
 	switch {
 	case ch == 'e':
 		return FoundValue{
-			Value:        nil,
+			Value:        BValue{},
 			BytesVisited: -1,
 			Error:        nil,
 		}
@@ -48,7 +48,7 @@ func getBValue(bencode []byte, i int) (res FoundValue) {
 	}
 
 	return FoundValue{
-		Value:        nil,
+		Value:        BValue{},
 		BytesVisited: -1,
 		Error:        fmt.Errorf("Value does not found for char = %c, index - %d", ch, i),
 	}
@@ -64,7 +64,10 @@ func findDictionary(from int, bencode []byte) FoundValue {
 	for i := 1; i < len(bencode); {
 		if bencode[i] == 'e' {
 			return FoundValue{
-				Value:        result,
+				Value: BValue{
+					Value:    result,
+					Original: bencode[:visited+1],
+				},
 				BytesVisited: i + 1,
 				Error:        nil,
 			}
@@ -79,26 +82,32 @@ func findDictionary(from int, bencode []byte) FoundValue {
 		visited += found.BytesVisited
 
 		if isKey {
-			bStringKey, ok := found.Value.(BString)
+			bStringKey, ok := found.Value.Value.(BString)
 			if ok {
 				key = string(bStringKey)
-				result[key] = struct{}{}
+				result[key] = BValue{}
 				isKey = false
 			} else {
 				return FoundValue{
-					Value:        result,
+					Value: BValue{
+						Value:    result,
+						Original: bencode[:visited+1],
+					},
 					BytesVisited: -1,
-					Error:        fmt.Errorf("Invalid key type - %s, must be string, Value - %s", reflect.TypeOf(found.Value), SprintfBValue(found.Value)),
+					Error:        fmt.Errorf("Invalid key type - %s, must be string, Value - %s", reflect.TypeFor[BValue](), SprintfBValue(found.Value)),
 				}
 			}
 		} else {
-			result[key] = GetUnderlyingTypedValue(found.Value)
+			result[key] = found.Value
 			isKey = true
 		}
 	}
 
 	return FoundValue{
-		Value:        result,
+		Value: BValue{
+			Value:    result,
+			Original: bencode[:visited+1],
+		},
 		BytesVisited: visited + 1,
 		Error:        nil,
 	}
@@ -112,7 +121,10 @@ func findList(from int, bencode []byte) FoundValue {
 	for i := 1; i < len(bencode); {
 		if bencode[i] == 'e' {
 			return FoundValue{
-				Value:        result,
+				Value: BValue{
+					Value:    result,
+					Original: bencode[:i+1],
+				},
 				BytesVisited: i + 1,
 				Error:        nil,
 			}
@@ -130,7 +142,10 @@ func findList(from int, bencode []byte) FoundValue {
 	}
 
 	return FoundValue{
-		Value:        result,
+		Value: BValue{
+			Value:    result,
+			Original: bencode[:visited+1],
+		},
 		BytesVisited: visited + 1,
 		Error:        nil,
 	}
@@ -140,7 +155,7 @@ func findString(i int, s []byte) FoundValue {
 	len, idx, err := findStringLength(s[i:])
 	if err != nil {
 		return FoundValue{
-			Value:        nil,
+			Value:        BValue{},
 			BytesVisited: idx,
 			Error:        err,
 		}
@@ -148,7 +163,10 @@ func findString(i int, s []byte) FoundValue {
 
 	idx += 1
 	return FoundValue{
-		Value:        BString(s[i+idx : i+idx+len]),
+		Value: BValue{
+			Value:    BString(s[i+idx : i+idx+len]),
+			Original: s[i+idx : i+idx+len],
+		},
 		BytesVisited: len + idx,
 		Error:        nil,
 	}
@@ -176,7 +194,10 @@ func findInt(from int, s []byte) FoundValue {
 		if ch == 'e' {
 			res, err := strconv.ParseInt(string(result), 10, 64)
 			return FoundValue{
-				Value:        BInt(res),
+				Value: BValue{
+					Value:    BInt(res),
+					Original: result,
+				},
 				BytesVisited: i + 1,
 				Error:        err,
 			}
@@ -186,7 +207,9 @@ func findInt(from int, s []byte) FoundValue {
 	}
 
 	return FoundValue{
-		Value:        BInt(-1),
+		Value: BValue{
+			Value: BInt(-1),
+		},
 		BytesVisited: -1,
 		Error:        errors.New("Could not find int"),
 	}

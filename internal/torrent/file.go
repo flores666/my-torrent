@@ -44,7 +44,7 @@ func Open(filePath string) (*Torrent, error) {
 
 	fmt.Println("Building torrent file")
 
-	if dict, ok := res[0].(bencode.BDict); ok {
+	if dict, ok := res[0].Value.(bencode.BDict); ok {
 		return Build(dict)
 	}
 
