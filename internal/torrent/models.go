@@ -24,7 +24,7 @@ type TorrentInfo struct {
 	Pieces      []byte        // concatenated SHA-1 hashes of all pieces (20 bytes each)
 	Private     bool          // private torrent flag (inherited or duplicated from root info)
 	MD5Sum      []byte        // MD5 checksum (legacy, rarely used in modern torrents)
-	Hash        string
+	HashEncoded string
 }
 
 type TorrentFile struct {
