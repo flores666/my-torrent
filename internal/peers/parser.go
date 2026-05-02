@@ -6,7 +6,7 @@ import (
 	"my-torrent/internal/bencode"
 )
 
-func Open(response string) (*Response, error) {
+func Parse(response string) (*Response, error) {
 	fmt.Println("Decoding response")
 
 	res, err := bencode.Decode([]byte(response))

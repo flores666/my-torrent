@@ -19,7 +19,7 @@ func main() {
 
 	r := "*peers*"
 
-	response, err := peers.Open(r)
+	response, err := peers.Parse(r)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
