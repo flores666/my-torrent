@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"my-torrent/internal/bencode"
-	"my-torrent/internal/utils/url"
 	"time"
 )
 
@@ -52,7 +51,7 @@ func Build(root bencode.BDict) (*Torrent, error) {
 					return nil, err
 				}
 
-				file.Info.HashEncoded = url.Encode(v.Original)
+				file.Info.Hash = string(v.Original)
 			}
 		case httpseeds:
 			if val, err := bencode.GetTypedValue[[]interface{}](v); err == nil {

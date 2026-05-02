@@ -1,4 +1,4 @@
-package url
+package encoding
 
 import (
 	"bytes"
@@ -6,9 +6,9 @@ import (
 	"fmt"
 )
 
-func Encode(s []byte) string {
+func Sha1(s string) string {
 	h := sha1.New()
-	h.Write(s)
+	h.Write([]byte(s))
 	hash := h.Sum(nil)
 
 	var buf bytes.Buffer

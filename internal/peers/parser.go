@@ -6,10 +6,10 @@ import (
 	"my-torrent/internal/bencode"
 )
 
-func Parse(response string) (*Response, error) {
-	fmt.Println("Decoding response")
+func Parse(response []byte) (*Response, error) {
+	fmt.Println("Decoding peers response")
 
-	res, err := bencode.Decode([]byte(response))
+	res, err := bencode.Decode(response)
 	if err != nil {
 		return nil, err
 	}
@@ -18,7 +18,7 @@ func Parse(response string) (*Response, error) {
 		return nil, errors.New("parsed bencode contains 0 elements")
 	}
 
-	fmt.Println("Building response struct")
+	fmt.Println("Building peers response struct")
 
 	if dict, ok := res[0].Value.(bencode.BDict); ok {
 		return Build(dict)

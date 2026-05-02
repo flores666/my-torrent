@@ -2,8 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
-	"my-torrent/internal/peers"
+	"my-torrent/internal/requests"
 	"my-torrent/internal/torrent"
 	"os"
 )
@@ -11,18 +12,14 @@ import (
 func main() {
 	torrent, err := torrent.Open("debian.torrent")
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Fatalln(err.Error())
 	}
 
-	bytes, _ := json.Marshal(torrent)
-	os.WriteFile("debian.json", bytes, 0644)
+	peers, listener := requests.GetPeers(torrent)
+	defer listener.Close()
 
-	r := "*peers*"
+	fmt.Println("Writing to file")
 
-	response, err := peers.Parse(r)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-	bytes2, _ := json.Marshal(response)
-	os.WriteFile("response.json", bytes2, 0644)
+	bytes, _ := json.Marshal(peers)
+	os.WriteFile("response.json", bytes, 0644)
 }
