@@ -201,7 +201,7 @@ func findInt(from int, s []byte) FoundValue {
 				BytesVisited: i + 1,
 				Error:        err,
 			}
-		} else if unicode.IsDigit(rune(ch)) {
+		} else if unicode.IsDigit(rune(ch)) || ch == '-' {
 			result = append(result, ch)
 		}
 	}
