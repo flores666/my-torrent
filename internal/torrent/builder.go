@@ -1,6 +1,7 @@
 package torrent
 
 import (
+	"crypto/sha1"
 	"errors"
 	"fmt"
 	"my-torrent/internal/bencode"
@@ -51,7 +52,7 @@ func Build(root bencode.BDict) (*Torrent, error) {
 					return nil, err
 				}
 
-				file.Info.Hash = string(v.Original)
+				file.Info.Hash = sha1.Sum(v.Original)
 			}
 		case httpseeds:
 			if val, err := bencode.GetTypedValue[[]interface{}](v); err == nil {

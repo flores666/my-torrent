@@ -1,25 +1,54 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
-	"my-torrent/internal/requests"
+	"my-torrent/internal/connection"
+	"my-torrent/internal/peerclient"
+	"my-torrent/internal/peerclient/peerreader"
+	"my-torrent/internal/peers"
 	"my-torrent/internal/torrent"
-	"os"
+	"my-torrent/lib/constants"
 )
 
 func main() {
+	peerReader := newPeerReader()
+	server := connection.NewServer(peerReader)
+	peerClient := peerclient.NewPeerClient(peerReader)
+
+	port, err := server.ListenAndServe()
+	if err != nil {
+		log.Fatalf("Failed to create new server, err = %v\n", err)
+	}
+
+	fmt.Println("Server started")
+
 	torrent, err := torrent.Open("debian.torrent")
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
 
-	peers, listener := requests.GetPeers(torrent)
-	defer listener.Close()
+	//_ = tracker.GetPeers(torrent, port)
 
-	fmt.Println("Writing to file")
+	peer := peers.PickPeer([]peers.Peer{
+		{
+			Id:   constants.PEER_ID,
+			Ip:   "localhost",
+			Port: port,
+		},
+	}, port)
 
-	bytes, _ := json.Marshal(peers)
-	os.WriteFile("response.json", bytes, 0644)
+	fmt.Println("Sending handshake request")
+
+	err = peerClient.Handshake(peer, torrent.Info.Hash, constants.PEER_ID)
+	if err != nil {
+		log.Fatal("Error while sending handshake request")
+	}
+}
+
+func newPeerReader() *peerreader.PeerReaderComposite {
+	reader := peerreader.NewPeerReaderComposite()
+	reader.Register(peerreader.NewHandshakeReader().Read)
+
+	return reader
 }

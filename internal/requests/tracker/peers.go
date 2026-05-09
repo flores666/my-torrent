@@ -1,20 +1,16 @@
-package requests
+package tracker
 
 import (
+	"crypto/sha1"
 	"fmt"
 	"io"
-	"log"
 	"my-torrent/internal/peers"
 	"my-torrent/internal/torrent"
-	"my-torrent/internal/utils/encoding"
-	"net"
+	"my-torrent/lib/constants"
+	"my-torrent/lib/encode"
 	"net/http"
 	"net/url"
-
-	"github.com/gofrs/uuid/v5"
 )
-
-var peerId string
 
 type arguments struct {
 	peerId     string
@@ -23,11 +19,12 @@ type arguments struct {
 	downloaded int64
 	left       int64
 	event      string
-	infoHash   string
+	infoHash   [20]byte
 }
 
-func GetPeers(torrent *torrent.Torrent) (*peers.Response, net.Listener) {
-	args, listener := getArguments(torrent)
+func GetPeers(torrent *torrent.Torrent, port int) *peers.Response {
+	args := getArguments(torrent)
+	args.port = port
 	urls := buildUrls(torrent.Announce, torrent.AnnounceList, args)
 
 	for _, tracker := range urls {
@@ -42,10 +39,10 @@ func GetPeers(torrent *torrent.Torrent) (*peers.Response, net.Listener) {
 
 		fmt.Printf("Request to tracker %s successfuly sent!\n", address)
 
-		return response, listener
+		return response
 	}
 
-	return nil, nil
+	return nil
 }
 
 func sendRequest(address string) (*peers.Response, error) {
@@ -77,6 +74,7 @@ func sendRequest(address string) (*peers.Response, error) {
 func buildUrls(announce string, announceTierList [][]string, args arguments) []*url.URL {
 	urls := make([]*url.URL, 0)
 	announceTierList = append(announceTierList, []string{announce})
+	idSum := sha1.Sum([]byte(args.peerId))
 
 	for _, announceList := range announceTierList {
 		for _, a := range announceList {
@@ -92,7 +90,7 @@ func buildUrls(announce string, announceTierList [][]string, args arguments) []*
 			q.Add("left", fmt.Sprintf("%d", args.left))
 			q.Add("event", args.event)
 
-			u.RawQuery = q.Encode() + "&info_hash=" + encoding.Sha1(args.infoHash) + "&peer_id=" + encoding.Sha1(peerId)
+			u.RawQuery = q.Encode() + "&info_hash=" + encode.Percent(args.infoHash[:]) + "&peer_id=" + encode.Percent(idSum[:])
 
 			urls = append(urls, u)
 		}
@@ -101,15 +99,7 @@ func buildUrls(announce string, announceTierList [][]string, args arguments) []*
 	return urls
 }
 
-func getArguments(torrent *torrent.Torrent) (arguments, net.Listener) {
-	peerIdUuid, _ := uuid.NewV7()
-	peerId = fmt.Sprintf("%x", peerIdUuid)[:20]
-
-	port, listener := getFreePort()
-	if listener == nil {
-		log.Fatalln("No available ports")
-	}
-
+func getArguments(torrent *torrent.Torrent) arguments {
 	event := "started" // stopped completed
 
 	var uploaded int64 = 0
@@ -123,8 +113,7 @@ func getArguments(torrent *torrent.Torrent) (arguments, net.Listener) {
 	}
 
 	args := arguments{
-		port:       port,
-		peerId:     peerId,
+		peerId:     constants.PEER_ID,
 		uploaded:   uploaded,
 		downloaded: downloaded,
 		left:       left,
@@ -132,24 +121,5 @@ func getArguments(torrent *torrent.Torrent) (arguments, net.Listener) {
 		infoHash:   torrent.Info.Hash,
 	}
 
-	return args, listener
-}
-
-func getFreePort() (int, net.Listener) {
-	var listener net.Listener
-	var err error
-
-	const start int = 6881
-	const end int = 6889
-
-	for port := start; port <= end; port++ {
-		listener, err = net.Listen("tcp", fmt.Sprintf(":%d", port))
-
-		if err == nil {
-			fmt.Println("Using port:", port)
-			return port, listener
-		}
-	}
-
-	return 0, nil
+	return args
 }
