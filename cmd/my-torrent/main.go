@@ -41,10 +41,11 @@ func main() {
 
 	fmt.Println("Sending handshake request")
 
-	err = peerClient.Handshake(peer, torrent.Info.Hash, constants.PEER_ID)
+	response, err := peerClient.Handshake(peer, torrent.Info.Hash)
 	if err != nil {
-		log.Fatal("Error while sending handshake request")
+		log.Fatalf("Error while sending handshake request, error = %v", err)
 	}
+	_ = response
 }
 
 func newPeerReader() *peerreader.PeerReaderComposite {

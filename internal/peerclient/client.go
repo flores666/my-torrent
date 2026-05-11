@@ -12,15 +12,10 @@ import (
 	"time"
 )
 
-const (
-	pstr     = "BitTorrent protocol"
-	reserved = "00000000"
-)
-
 const deadline = 5 * time.Second
 
 type PeerClient interface {
-	Handshake(peer *peers.Peer, infoHash [20]byte) error
+	Handshake(peer *peers.Peer, infoHash [20]byte) (*handshake.Message, error)
 }
 
 type peerClient struct {
@@ -31,12 +26,12 @@ func NewPeerClient(r *peerreader.PeerReaderComposite) PeerClient {
 	return &peerClient{r}
 }
 
-func (c *peerClient) Handshake(peer *peers.Peer, infoHash [20]byte) error {
-	myHandshake := createHandshake(infoHash, constants.PEER_ID)
+func (c *peerClient) Handshake(peer *peers.Peer, infoHash [20]byte) (*handshake.Message, error) {
+	myHandshake := handshake.BuildBytes(infoHash, constants.PEER_ID)
 
 	conn, err := sendRequest("tcp", peer.Address(), myHandshake)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	defer conn.Close()
@@ -45,29 +40,20 @@ func (c *peerClient) Handshake(peer *peers.Peer, infoHash [20]byte) error {
 
 	body, err := connection.ReadHandshake(conn)
 	if err != nil {
-		fmt.Printf("Error while reading data on %s:%s: %v\n", addr.Network(), addr.String(), err)
-		return err
+		return nil, err
 	}
 
 	if !handshake.Validate(myHandshake, body) {
 		err = fmt.Errorf("invalid handshake response from %s:%s", addr.Network(), addr.String())
-		fmt.Println(err.Error())
-		return err
+		return nil, err
 	}
 
-	fmt.Printf("%x\n", body)
+	response, err := peerreader.ReadAs[*handshake.Message](c.reader, body)
+	if err != nil {
+		return nil, err
+	}
 
-	return nil
-}
-
-func createHandshake(infoHash [20]byte, peerId string) []byte {
-	buff := make([]byte, 0, 68)
-	buff = append(buff, 19)
-	buff = append(buff, []byte("BitTorrent protocol")...)
-	buff = append(buff, make([]byte, 8)...)
-	buff = append(buff, infoHash[:]...)
-	buff = append(buff, []byte(peerId)...)
-	return buff
+	return response, nil
 }
 
 func sendRequest(network, addr string, message []byte) (net.Conn, error) {

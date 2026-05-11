@@ -1,16 +1,10 @@
 package handshake
 
 import (
-	"encoding/hex"
 	"errors"
 )
 
-const (
-	handshakeLenV1 = 68
-	protocol       = "BitTorrent protocol"
-)
-
-type HandshakeMessage struct {
+type Message struct {
 	PstrLen  int      // string length of pstr
 	Pstr     []byte   // string identifier of the protocol
 	Reserved [8]byte  // 8 reserved bytes.
@@ -27,7 +21,7 @@ func NewReader() *Reader {
 
 // Read supports only BitTorrent v1 protocol
 func (h *Reader) Read(body []byte) (any, error) {
-	msg := HandshakeMessage{}
+	msg := Message{}
 
 	if !validate(body) {
 		return nil, errors.New("invalid handshake message body")
@@ -43,25 +37,15 @@ func (h *Reader) Read(body []byte) (any, error) {
 }
 
 func validate(msg []byte) bool {
-	if len(msg) != handshakeLenV1 {
+	if len(msg) != msgLen {
 		return false
 	}
 
-	if msg[0] != 19 {
+	if msg[0] != pstrLen {
 		return false
 	}
 
-	if string(msg[1:1+19]) != protocol {
-		return false
-	}
-
-	_, err := hex.DecodeString(string(msg[1+19+8 : 1+19+8+20]))
-	if err != nil {
-		return false
-	}
-
-	_, err = hex.DecodeString(string(msg[1+19+8+20:]))
-	if err != nil {
+	if string(msg[1:1+pstrLen]) != pstr {
 		return false
 	}
 

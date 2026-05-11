@@ -19,27 +19,39 @@ const (
 	peerIdStart = infoHashStart + infoHashLen
 )
 
-func Validate(my, resp []byte) bool {
-	if len(my) != msgLen || len(my) != len(resp) {
+// Validate validates response handshake
+func Validate(first, second []byte) bool {
+	if len(first) != msgLen || len(first) != len(second) {
 		return false
 	}
 
-	if resp[0] != pstrLen {
+	if second[0] != pstrLen {
 		return false
 	}
 
-	if string(resp[1:1+pstrLen]) != pstr {
+	if string(second[1:1+pstrLen]) != pstr {
 		return false
 	}
 
-	if !slices.Equal(my[infoHashStart:infoHashStart+infoHashLen], resp[infoHashStart:infoHashStart+infoHashLen]) {
+	if !slices.Equal(first[infoHashStart:infoHashStart+infoHashLen], second[infoHashStart:infoHashStart+infoHashLen]) {
 		return false
 	}
 
 	// todo: only for dev, uncomment this
-	// if slices.Equal(my[peerIdStart:], resp[peerIdStart:]) {
+	// if slices.Equal(first[peerIdStart:], second[peerIdStart:]) {
 	// 	return false
 	// }
 
 	return true
+}
+
+// BuildBytes creates handshake request body
+func BuildBytes(infoHash [20]byte, peerId string) []byte {
+	buff := make([]byte, 0, 68)
+	buff = append(buff, 19)
+	buff = append(buff, []byte("BitTorrent protocol")...)
+	buff = append(buff, make([]byte, 8)...)
+	buff = append(buff, infoHash[:]...)
+	buff = append(buff, []byte(peerId)...)
+	return buff
 }
