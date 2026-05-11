@@ -3,18 +3,18 @@ package main
 import (
 	"fmt"
 	"log"
-	"my-torrent/internal/connection"
 	"my-torrent/internal/modelbuilder/peers"
 	"my-torrent/internal/modelbuilder/torrent"
 	"my-torrent/internal/peerclient"
 	"my-torrent/internal/peerclient/handshake"
 	"my-torrent/internal/peerclient/peerreader"
+	"my-torrent/internal/server"
 	"my-torrent/lib/constants"
 )
 
 func main() {
 	peerReader := newPeerReader()
-	server := connection.NewServer(peerReader)
+	server := server.NewServer(peerReader)
 	peerClient := peerclient.NewPeerClient(peerReader)
 
 	port, err := server.ListenAndServe()

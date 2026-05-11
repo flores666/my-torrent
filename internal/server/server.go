@@ -1,4 +1,4 @@
-package connection
+package server
 
 import (
 	"errors"
@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"my-torrent/internal/peerclient/peerreader"
+	"my-torrent/lib/messagereader"
 )
 
 const deadline = 5 * time.Second
@@ -57,11 +58,11 @@ func readBody(conn net.Conn) ([]byte, error) {
 	var err error
 	var body []byte
 
-	if body, err = ReadHandshake(conn); err == nil {
+	if body, err = messagereader.ReadHandshake(conn); err == nil {
 		return body, nil
 	}
 
-	if body, err = ReadMessage(conn); err == nil {
+	if body, err = messagereader.ReadMessage(conn); err == nil {
 		return body, nil
 	}
 

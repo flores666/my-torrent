@@ -3,11 +3,11 @@ package peerclient
 import (
 	"errors"
 	"fmt"
-	"my-torrent/internal/connection"
 	"my-torrent/internal/modelbuilder/peers"
 	"my-torrent/internal/peerclient/handshake"
 	"my-torrent/internal/peerclient/peerreader"
 	"my-torrent/lib/constants"
+	"my-torrent/lib/messagereader"
 	"net"
 	"time"
 )
@@ -38,7 +38,7 @@ func (c *peerClient) Handshake(peer *peers.Peer, infoHash [20]byte) (*handshake.
 
 	addr := conn.RemoteAddr()
 
-	body, err := connection.ReadHandshake(conn)
+	body, err := messagereader.ReadHandshake(conn)
 	if err != nil {
 		return nil, err
 	}

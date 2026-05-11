@@ -1,4 +1,4 @@
-package connection
+package messagereader
 
 import (
 	"encoding/binary"
