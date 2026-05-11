@@ -36,7 +36,7 @@ func Validate(my, resp []byte) bool {
 		return false
 	}
 
-	// todo: only for tests
+	// todo: only for dev, uncomment this
 	// if slices.Equal(my[peerIdStart:], resp[peerIdStart:]) {
 	// 	return false
 	// }

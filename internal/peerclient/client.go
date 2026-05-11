@@ -7,6 +7,7 @@ import (
 	"my-torrent/internal/modelbuilder/peers"
 	"my-torrent/internal/peerclient/handshake"
 	"my-torrent/internal/peerclient/peerreader"
+	"my-torrent/lib/constants"
 	"net"
 	"time"
 )
@@ -19,7 +20,7 @@ const (
 const deadline = 5 * time.Second
 
 type PeerClient interface {
-	Handshake(peer *peers.Peer, infoHash [20]byte, peerId string) error
+	Handshake(peer *peers.Peer, infoHash [20]byte) error
 }
 
 type peerClient struct {
@@ -30,8 +31,8 @@ func NewPeerClient(r *peerreader.PeerReaderComposite) PeerClient {
 	return &peerClient{r}
 }
 
-func (c *peerClient) Handshake(peer *peers.Peer, infoHash [20]byte, peerId string) error {
-	myHandshake := createHandshake(infoHash, peerId)
+func (c *peerClient) Handshake(peer *peers.Peer, infoHash [20]byte) error {
+	myHandshake := createHandshake(infoHash, constants.PEER_ID)
 
 	conn, err := sendRequest("tcp", peer.Address(), myHandshake)
 	if err != nil {
