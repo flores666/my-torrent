@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"log"
 	"my-torrent/internal/connection"
+	"my-torrent/internal/modelbuilder/peers"
+	"my-torrent/internal/modelbuilder/torrent"
 	"my-torrent/internal/peerclient"
+	"my-torrent/internal/peerclient/handshake"
 	"my-torrent/internal/peerclient/peerreader"
-	"my-torrent/internal/peers"
-	"my-torrent/internal/torrent"
 	"my-torrent/lib/constants"
 )
 
@@ -28,7 +29,7 @@ func main() {
 		log.Fatalln(err.Error())
 	}
 
-	//_ = tracker.GetPeers(torrent, port)
+	//_ = trackerclient.GetPeers(torrent, port)
 
 	peer := peers.PickPeer([]peers.Peer{
 		{
@@ -48,7 +49,7 @@ func main() {
 
 func newPeerReader() *peerreader.PeerReaderComposite {
 	reader := peerreader.NewPeerReaderComposite()
-	reader.Register(peerreader.NewHandshakeReader().Read)
+	reader.Register(handshake.NewReader().Read)
 
 	return reader
 }

@@ -1,11 +1,11 @@
-package tracker
+package trackerclient
 
 import (
 	"crypto/sha1"
 	"fmt"
 	"io"
-	"my-torrent/internal/peers"
-	"my-torrent/internal/torrent"
+	"my-torrent/internal/modelbuilder/peers"
+	"my-torrent/internal/modelbuilder/torrent"
 	"my-torrent/lib/constants"
 	"my-torrent/lib/encode"
 	"net/http"

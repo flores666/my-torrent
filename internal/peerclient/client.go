@@ -4,8 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"my-torrent/internal/connection"
+	"my-torrent/internal/modelbuilder/peers"
+	"my-torrent/internal/peerclient/handshake"
 	"my-torrent/internal/peerclient/peerreader"
-	"my-torrent/internal/peers"
 	"net"
 	"time"
 )
@@ -30,7 +31,9 @@ func NewPeerClient(r *peerreader.PeerReaderComposite) PeerClient {
 }
 
 func (c *peerClient) Handshake(peer *peers.Peer, infoHash [20]byte, peerId string) error {
-	conn, err := sendRequest("tcp", peer.Address(), createHandshake(infoHash, peerId))
+	myHandshake := createHandshake(infoHash, peerId)
+
+	conn, err := sendRequest("tcp", peer.Address(), myHandshake)
 	if err != nil {
 		return err
 	}
@@ -45,14 +48,13 @@ func (c *peerClient) Handshake(peer *peers.Peer, infoHash [20]byte, peerId strin
 		return err
 	}
 
-	response, err := peerreader.ReadAs[*peerreader.HandshakeMessage](c.reader, body)
-	if err != nil {
-		fmt.Printf("Error while parsing data on %s:%s: %v\n", addr.Network(), addr.String(), err)
+	if !handshake.Validate(myHandshake, body) {
+		err = fmt.Errorf("invalid handshake response from %s:%s", addr.Network(), addr.String())
+		fmt.Println(err.Error())
 		return err
 	}
 
-	// validate handshake
-	fmt.Printf("%x\n", response.Message)
+	fmt.Printf("%x\n", body)
 
 	return nil
 }
