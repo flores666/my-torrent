@@ -24,7 +24,7 @@ func NewHandshakeReader() *HandshakeReader {
 func (h *HandshakeReader) Read(body []byte) (any, error) {
 	msg := HandshakeMessage{}
 
-	if !validate(body) {
+	if !handshake.Validate(body) {
 		return nil, errors.New("invalid handshake message body")
 	}
 
@@ -35,20 +35,4 @@ func (h *HandshakeReader) Read(body []byte) (any, error) {
 	msg.PeerId = [20]byte(body[1+msg.PstrLen+8+20 : 1+msg.PstrLen+8+20+20])
 
 	return &msg, nil
-}
-
-func validate(msg []byte) bool {
-	if len(msg) != handshake.MsgLen {
-		return false
-	}
-
-	if msg[0] != handshake.PstrLen {
-		return false
-	}
-
-	if string(msg[1:1+handshake.PstrLen]) != handshake.Pstr {
-		return false
-	}
-
-	return true
 }

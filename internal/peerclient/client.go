@@ -35,14 +35,13 @@ func (c *peerClient) Handshake(peer *peers.Peer, infoHash [20]byte) (*peerreader
 
 	defer conn.Close()
 
-	addr := conn.RemoteAddr()
-
 	body, err := handshake.ReadBody(conn)
 	if err != nil {
 		return nil, err
 	}
 
 	if !handshake.ValidateResponse(myHandshake, body) {
+		addr := conn.RemoteAddr()
 		err = fmt.Errorf("invalid handshake response from %s:%s", addr.Network(), addr.String())
 		return nil, err
 	}
