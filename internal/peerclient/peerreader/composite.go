@@ -1,16 +1,17 @@
 package peerreader
 
-import "errors"
+import (
+	"errors"
+	"my-torrent/lib/constants"
+)
 
 type PeerReaderComposite struct {
 	handlers []func(body []byte) (any, error)
 }
 
-const knownResponseMessageTypesCount = 12
-
 func NewPeerReaderComposite() *PeerReaderComposite {
 	return &PeerReaderComposite{
-		handlers: make([]func(body []byte) (any, error), 0, knownResponseMessageTypesCount),
+		handlers: make([]func(body []byte) (any, error), 0, constants.P2P_MESSAGE_TYPES_COUNT),
 	}
 }
 

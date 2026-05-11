@@ -4,10 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"my-torrent/internal/modelbuilder/peers"
-	"my-torrent/internal/peerclient/handshake"
 	"my-torrent/internal/peerclient/peerreader"
 	"my-torrent/lib/constants"
-	"my-torrent/lib/messagereader"
+	"my-torrent/lib/handshake"
 	"net"
 	"time"
 )
@@ -15,7 +14,7 @@ import (
 const deadline = 5 * time.Second
 
 type PeerClient interface {
-	Handshake(peer *peers.Peer, infoHash [20]byte) (*handshake.Message, error)
+	Handshake(peer *peers.Peer, infoHash [20]byte) (*peerreader.HandshakeMessage, error)
 }
 
 type peerClient struct {
@@ -26,7 +25,7 @@ func NewPeerClient(r *peerreader.PeerReaderComposite) PeerClient {
 	return &peerClient{r}
 }
 
-func (c *peerClient) Handshake(peer *peers.Peer, infoHash [20]byte) (*handshake.Message, error) {
+func (c *peerClient) Handshake(peer *peers.Peer, infoHash [20]byte) (*peerreader.HandshakeMessage, error) {
 	myHandshake := handshake.BuildBytes(infoHash, constants.PEER_ID)
 
 	conn, err := sendRequest("tcp", peer.Address(), myHandshake)
@@ -38,17 +37,17 @@ func (c *peerClient) Handshake(peer *peers.Peer, infoHash [20]byte) (*handshake.
 
 	addr := conn.RemoteAddr()
 
-	body, err := messagereader.ReadHandshake(conn)
+	body, err := handshake.ReadBody(conn)
 	if err != nil {
 		return nil, err
 	}
 
-	if !handshake.Validate(myHandshake, body) {
+	if !handshake.ValidateResponse(myHandshake, body) {
 		err = fmt.Errorf("invalid handshake response from %s:%s", addr.Network(), addr.String())
 		return nil, err
 	}
 
-	response, err := peerreader.ReadAs[*handshake.Message](c.reader, body)
+	response, err := peerreader.ReadAs[*peerreader.HandshakeMessage](c.reader, body)
 	if err != nil {
 		return nil, err
 	}

@@ -6,15 +6,17 @@ import (
 	"my-torrent/internal/modelbuilder/peers"
 	"my-torrent/internal/modelbuilder/torrent"
 	"my-torrent/internal/peerclient"
-	"my-torrent/internal/peerclient/handshake"
 	"my-torrent/internal/peerclient/peerreader"
 	"my-torrent/internal/server"
+	"my-torrent/internal/server/router"
+	"my-torrent/internal/server/router/handlers"
 	"my-torrent/lib/constants"
 )
 
 func main() {
 	peerReader := newPeerReader()
-	server := server.NewServer(peerReader)
+	messagesRouter := newMessagesRouter()
+	server := server.NewServer(peerReader, messagesRouter)
 	peerClient := peerclient.NewPeerClient(peerReader)
 
 	port, err := server.ListenAndServe()
@@ -49,8 +51,15 @@ func main() {
 }
 
 func newPeerReader() *peerreader.PeerReaderComposite {
-	reader := peerreader.NewPeerReaderComposite()
-	reader.Register(handshake.NewReader().Read)
+	r := peerreader.NewPeerReaderComposite()
+	r.Register(peerreader.NewHandshakeReader().Read)
 
-	return reader
+	return r
+}
+
+func newMessagesRouter() router.MessageRouter {
+	r := router.NewMessageRouter()
+	r.Register(handlers.NewHandshake().Handle)
+
+	return r
 }

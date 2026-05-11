@@ -1,4 +1,4 @@
-package messagereader
+package messages
 
 import (
 	"encoding/binary"
@@ -13,32 +13,8 @@ const (
 	readTimeout    = 5 * time.Second
 )
 
-func ReadHandshake(conn net.Conn) ([]byte, error) {
-	_ = conn.SetReadDeadline(time.Now().Add(readTimeout))
-
-	pstrlen := make([]byte, 1)
-
-	_, err := io.ReadFull(conn, pstrlen)
-	if err != nil {
-		return nil, err
-	}
-
-	if pstrlen[0] != 19 {
-		return nil, fmt.Errorf("invalid pstrlen: %d", pstrlen[0])
-	}
-
-	rest := make([]byte, 67) // fixed for BitTorrent
-
-	_, err = io.ReadFull(conn, rest)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return append(pstrlen, rest...), nil
-}
-
-func ReadMessage(conn net.Conn) ([]byte, error) {
+// ReadBody reads bytes from conn and returns bytes of message
+func ReadBody(conn net.Conn) ([]byte, error) {
 	_ = conn.SetReadDeadline(time.Now().Add(readTimeout))
 
 	prefix := make([]byte, 4)

@@ -7,17 +7,21 @@ import (
 	"time"
 
 	"my-torrent/internal/peerclient/peerreader"
-	"my-torrent/lib/messagereader"
+	"my-torrent/internal/server/router"
 )
 
 const deadline = 5 * time.Second
 
 type Server struct {
 	reader *peerreader.PeerReaderComposite
+	router router.MessageRouter
 }
 
-func NewServer(r *peerreader.PeerReaderComposite) *Server {
-	return &Server{r}
+func NewServer(r *peerreader.PeerReaderComposite, mr router.MessageRouter) *Server {
+	return &Server{
+		reader: r,
+		router: mr,
+	}
 }
 
 func (s *Server) ListenAndServe() (int, error) {
@@ -30,43 +34,18 @@ func (s *Server) ListenAndServe() (int, error) {
 		addr := listener.Addr()
 
 		for {
+			//todo max connections
 			conn, err := listener.Accept()
 			if err != nil {
 				fmt.Printf("Error while listening on %s:%s\n", addr.Network(), addr.String())
 				return
 			}
 
-			go func(conn net.Conn) {
-				defer conn.Close()
-				conn.SetDeadline(time.Now().Add(deadline))
-
-				body, err := readBody(conn)
-				if err != nil {
-					fmt.Printf("Error while reading data on %s:%s: %v\n", addr.Network(), addr.String(), err)
-					return
-				}
-
-				conn.Write(body)
-			}(conn)
+			go s.router.Route(conn)
 		}
 	}()
 
 	return port, nil
-}
-
-func readBody(conn net.Conn) ([]byte, error) {
-	var err error
-	var body []byte
-
-	if body, err = messagereader.ReadHandshake(conn); err == nil {
-		return body, nil
-	}
-
-	if body, err = messagereader.ReadMessage(conn); err == nil {
-		return body, nil
-	}
-
-	return nil, errors.New("unknown message format")
 }
 
 func getFreePort() (int, net.Listener) {

@@ -1,10 +1,11 @@
-package handshake
+package peerreader
 
 import (
 	"errors"
+	"my-torrent/lib/handshake"
 )
 
-type Message struct {
+type HandshakeMessage struct {
 	PstrLen  int      // string length of pstr
 	Pstr     []byte   // string identifier of the protocol
 	Reserved [8]byte  // 8 reserved bytes.
@@ -12,16 +13,16 @@ type Message struct {
 	PeerId   [20]byte // 20-byte string used as a unique ID for the client
 }
 
-type Reader struct {
+type HandshakeReader struct {
 }
 
-func NewReader() *Reader {
-	return &Reader{}
+func NewHandshakeReader() *HandshakeReader {
+	return &HandshakeReader{}
 }
 
 // Read supports only BitTorrent v1 protocol
-func (h *Reader) Read(body []byte) (any, error) {
-	msg := Message{}
+func (h *HandshakeReader) Read(body []byte) (any, error) {
+	msg := HandshakeMessage{}
 
 	if !validate(body) {
 		return nil, errors.New("invalid handshake message body")
@@ -37,15 +38,15 @@ func (h *Reader) Read(body []byte) (any, error) {
 }
 
 func validate(msg []byte) bool {
-	if len(msg) != msgLen {
+	if len(msg) != handshake.MsgLen {
 		return false
 	}
 
-	if msg[0] != pstrLen {
+	if msg[0] != handshake.PstrLen {
 		return false
 	}
 
-	if string(msg[1:1+pstrLen]) != pstr {
+	if string(msg[1:1+handshake.PstrLen]) != handshake.Pstr {
 		return false
 	}
 
