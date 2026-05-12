@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"my-torrent/internal/modelbuilder/peers"
 	"my-torrent/internal/peerclient/peerreader"
+	"my-torrent/internal/storage"
 	"my-torrent/lib/constants"
 	"my-torrent/lib/handshake"
 	"net"
@@ -18,11 +19,15 @@ type PeerClient interface {
 }
 
 type peerClient struct {
-	reader *peerreader.PeerReaderComposite
+	reader  *peerreader.PeerReaderComposite
+	storage storage.Storage
 }
 
-func NewPeerClient(r *peerreader.PeerReaderComposite) PeerClient {
-	return &peerClient{r}
+func NewPeerClient(r *peerreader.PeerReaderComposite, st storage.Storage) PeerClient {
+	return &peerClient{
+		reader:  r,
+		storage: st,
+	}
 }
 
 func (c *peerClient) Handshake(peer *peers.Peer, infoHash [20]byte) (*peerreader.HandshakeMessage, error) {

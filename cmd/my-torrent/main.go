@@ -10,14 +10,20 @@ import (
 	"my-torrent/internal/server"
 	"my-torrent/internal/server/router"
 	"my-torrent/internal/server/router/handlers"
+	"my-torrent/internal/storage"
 	"my-torrent/lib/constants"
+	"my-torrent/lib/db"
 )
 
 func main() {
+	db := db.MustLoadNewSqlliteDB("sqlite", "egt.db")
+	defer db.Close()
+
+	store := storage.NewSqlLiteStorage(db)
 	peerReader := newPeerReader()
-	messagesRouter := newMessagesRouter()
-	server := server.NewServer(peerReader, messagesRouter)
-	peerClient := peerclient.NewPeerClient(peerReader)
+
+	server := server.NewServer(peerReader, newMessagesRouter())
+	peerClient := peerclient.NewPeerClient(peerReader, store)
 
 	port, err := server.ListenAndServe()
 	if err != nil {
