@@ -7,6 +7,7 @@ import (
 	"my-torrent/internal/peerclient/peerreader"
 	"my-torrent/internal/storage"
 	"my-torrent/lib/handshake"
+	"my-torrent/lib/peerstatuses"
 	"net"
 	"time"
 )
@@ -41,7 +42,7 @@ func (c *peerClient) Handshake(peer *peers.Peer, infoHash [20]byte) (*peerreader
 
 	conn, err := sendRequest("tcp", peer.Address(), myHandshake)
 	if err != nil {
-		if dbErr := c.tStorage.UpdatePeerStatus(infoHash[:], peer.Ip, peer.Port, PeerStatusFailed); dbErr != nil {
+		if dbErr := c.tStorage.UpdatePeerStatus(infoHash[:], peer.Ip, peer.Port, peerstatuses.Failed); dbErr != nil {
 			fmt.Printf("error while updating peer %s status, err = %v\n", peer.Address(), dbErr)
 		}
 
@@ -69,7 +70,7 @@ func (c *peerClient) Handshake(peer *peers.Peer, infoHash [20]byte) (*peerreader
 	}
 
 	fmt.Printf("successful handshake, updating peer %s status\n", peer.Address())
-	if err = c.tStorage.MarkPeerHandshakeReceived(response.InfoHash[:], string(response.PeerId[:]), peer.Ip, peer.Port, PeerStatusHandshakeReceived); err != nil {
+	if err = c.tStorage.MarkPeerHandshakeReceived(response.InfoHash[:], string(response.PeerId[:]), peer.Ip, peer.Port); err != nil {
 		fmt.Printf("error while updating peer %s status\n", peer.Address())
 		return nil, nil
 	}

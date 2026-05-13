@@ -149,6 +149,7 @@ CREATE TABLE IF NOT EXISTS client_identity (
     id              INTEGER PRIMARY KEY CHECK (id = 1),
 
     peer_id         TEXT NOT NULL CHECK (length(peer_id) = 20),
+    port            INTEGER NOT NULL CHECK (port > 0 AND port <= 65535),
 
     created_at      TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -156,11 +157,13 @@ CREATE TABLE IF NOT EXISTS client_identity (
 
 INSERT OR IGNORE INTO client_identity (
     id,
-    peer_id
+    peer_id,
+    port
 )
 VALUES (
     1,
-    ?
+    ?,
+    1
 );
 
 CREATE INDEX IF NOT EXISTS idx_torrent_peers_torrent_hash

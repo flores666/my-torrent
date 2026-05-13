@@ -57,3 +57,24 @@ func (s *sqlliteServerStorage) SetId(peerID string) error {
 
 	return nil
 }
+
+func (s *sqlliteServerStorage) GetPort() (int, error) {
+	const query = `
+		SELECT port
+		FROM client_identity
+		WHERE id = 1;
+	`
+
+	var port int
+
+	err := s.db.QueryRow(query).Scan(&port)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, nil
+		}
+
+		return 0, err
+	}
+
+	return port, nil
+}

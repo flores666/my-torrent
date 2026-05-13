@@ -28,8 +28,8 @@ func main() {
 	server := server.NewServer(peerReader, newMessagesRouter(tStorage, sStorage))
 
 	peerClient := peerclient.NewPeerClient(peerReader, tStorage, sStorage)
-	trackerClient := tracker.NewClient(tStorage, sStorage)
-	_ = trackerClient
+	trackerService := tracker.NewService(tracker.NewClient(), tStorage, sStorage)
+	_ = trackerService
 
 	port, err := server.ListenAndServe()
 	if err != nil {
