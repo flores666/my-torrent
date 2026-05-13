@@ -2,15 +2,18 @@ package tracker
 
 import (
 	"crypto/sha1"
+	"errors"
 	"fmt"
 	"io"
+	"my-torrent/internal/bencode"
+	"my-torrent/internal/modelbuilder/peers"
 	"my-torrent/lib/encode"
 	"net/http"
 	"net/url"
 )
 
 type Client interface {
-	Announce(args arguments) ([]byte, error)
+	Announce(args arguments) (*AnnounceResponse, error)
 }
 
 type client struct {
@@ -20,14 +23,14 @@ func NewClient() Client {
 	return &client{}
 }
 
-func (c *client) Announce(args arguments) ([]byte, error) {
+func (c *client) Announce(args arguments) (*AnnounceResponse, error) {
 	urls := buildAnnounceUrls(args)
 
 	for _, tracker := range urls {
 		address := tracker.String()
 		fmt.Printf("Sending request to %s\n", address)
 
-		response, err := sendRequest(address)
+		body, err := sendRequest(address)
 		if err != nil {
 			fmt.Printf("Tracker %s responded with error = %s, trying next\n", tracker, err.Error())
 			continue
@@ -35,10 +38,59 @@ func (c *client) Announce(args arguments) ([]byte, error) {
 
 		fmt.Printf("Request to tracker %s successfuly sent!\n", address)
 
+		response, err := parseAnnounceResponse(body)
+		if err != nil {
+			return nil, nil
+		}
+
 		return response, nil
 	}
 
 	return nil, nil
+}
+
+func parseAnnounceResponse(response []byte) (*AnnounceResponse, error) {
+	fmt.Println("Decoding peers response")
+
+	res, err := bencode.Decode(response)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(res) <= 0 {
+		return nil, errors.New("parsed bencode contains 0 elements")
+	}
+
+	fmt.Println("Building peers response struct")
+
+	if dict, ok := res[0].Value.(bencode.BDict); ok {
+		return buildAnnounceResponse(dict)
+	}
+
+	return nil, errors.New("could not read response")
+}
+
+func buildAnnounceResponse(root bencode.BDict) (*AnnounceResponse, error) {
+	response := AnnounceResponse{}
+	for k, v := range root {
+		switch k {
+		case intervalKey:
+			if val, err := bencode.GetTypedValue[int64](v); err == nil {
+				response.Interval = int(val)
+			}
+		case peersKey:
+			if val, err := bencode.GetTypedValue[[]any](v); err == nil {
+				response.Peers, err = peers.BuildPeers(val)
+				if err != nil {
+					return nil, err
+				}
+			}
+		default:
+			return nil, fmt.Errorf("could not determine field with name = %s\n", k)
+		}
+	}
+
+	return &response, nil
 }
 
 func sendRequest(address string) ([]byte, error) {

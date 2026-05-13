@@ -34,14 +34,9 @@ func (s *service) Announce(torrent *torrent.Torrent) []peers.Peer {
 		return nil
 	}
 
-	body, err := s.client.Announce(args)
+	response, err := s.client.Announce(args)
 	if err != nil {
 		fmt.Println(err)
-		return nil
-	}
-
-	response, err := ParseAnnounceResponse(body)
-	if err != nil {
 		return nil
 	}
 
