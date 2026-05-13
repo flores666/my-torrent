@@ -12,6 +12,11 @@ import (
 	"net/url"
 )
 
+const (
+	intervalKey = "interval"
+	peersKey    = "peers"
+)
+
 type Client interface {
 	Announce(args arguments) (*AnnounceResponse, error)
 }

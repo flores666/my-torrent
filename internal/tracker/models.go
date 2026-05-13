@@ -4,11 +4,6 @@ import (
 	"my-torrent/internal/modelbuilder/peers"
 )
 
-const (
-	intervalKey = "interval"
-	peersKey    = "peers"
-)
-
 type arguments struct {
 	announce     string
 	announcelist [][]string
