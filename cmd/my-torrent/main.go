@@ -11,19 +11,25 @@ import (
 	"my-torrent/internal/server/router"
 	"my-torrent/internal/server/router/handlers"
 	"my-torrent/internal/storage"
-	"my-torrent/lib/constants"
+	"my-torrent/internal/tracker"
 	"my-torrent/lib/db"
 )
 
 func main() {
+	//#region dependencies
 	db := db.MustLoadNewSqlliteDB("sqlite", "egt.db")
 	defer db.Close()
 
-	store := storage.NewSqlLiteStorage(db)
+	tStorage := storage.NewSqlLiteTorrentStorage(db)
+	sStorage := storage.NewSqlLiteServerStorage(db)
+
 	peerReader := newPeerReader()
 
-	server := server.NewServer(peerReader, newMessagesRouter())
-	peerClient := peerclient.NewPeerClient(peerReader, store)
+	server := server.NewServer(peerReader, newMessagesRouter(tStorage, sStorage))
+
+	peerClient := peerclient.NewPeerClient(peerReader, tStorage, sStorage)
+	trackerClient := tracker.NewClient(tStorage, sStorage)
+	_ = trackerClient
 
 	port, err := server.ListenAndServe()
 	if err != nil {
@@ -32,27 +38,37 @@ func main() {
 
 	fmt.Println("Server started")
 
+	// #endregion dependencies
+
 	torrent, err := torrent.Open("debian.torrent")
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
 
-	//_ = trackerclient.GetPeers(torrent, port)
+	err = tStorage.Save(torrent)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	//peersResponse := trackerClient.GetPeers(torrent, port)
+	//pList, _ := tStorage.GetPeers(torrent.Info.Hash[:])
+	//peer := peers.PickPeer(pList, port)
 
 	peer := peers.PickPeer([]peers.Peer{
 		{
-			Id:   constants.PEER_ID,
+			Id:   "-EG0000-6wfG2wk6wFOi",
 			Ip:   "localhost",
 			Port: port,
 		},
 	}, port)
 
-	fmt.Println("Sending handshake request")
+	fmt.Printf("Sending handshake request to %s\n", peer.Address())
 
 	response, err := peerClient.Handshake(peer, torrent.Info.Hash)
 	if err != nil {
 		log.Fatalf("Error while sending handshake request, error = %v", err)
 	}
+
 	_ = response
 }
 
@@ -63,9 +79,9 @@ func newPeerReader() *peerreader.PeerReaderComposite {
 	return r
 }
 
-func newMessagesRouter() router.MessageRouter {
+func newMessagesRouter(tStorage storage.TorrentsStorage, sStorage storage.ServerStorage) router.MessageRouter {
 	r := router.NewMessageRouter()
-	r.Register(handlers.NewHandshake().Handle)
+	r.Register(handlers.NewHandshake(tStorage, sStorage).Handle)
 
 	return r
 }

@@ -3,16 +3,21 @@ package handlers
 import (
 	"errors"
 	"fmt"
-	"my-torrent/internal/modelbuilder/torrent"
+	"my-torrent/internal/storage"
 	"my-torrent/lib/handshake"
 	"net"
 )
 
 type handler struct {
+	tStorage storage.TorrentsStorage
+	sStorage storage.ServerStorage
 }
 
-func NewHandshake() MessageHandler {
-	return &handler{}
+func NewHandshake(ts storage.TorrentsStorage, ss storage.ServerStorage) MessageHandler {
+	return &handler{
+		tStorage: ts,
+		sStorage: ss,
+	}
 }
 
 func (h *handler) Handle(conn net.Conn) (bool, error) {
@@ -29,14 +34,17 @@ func (h *handler) Handle(conn net.Conn) (bool, error) {
 
 	hash := body[handshake.InfoHashStart : handshake.InfoHashStart+handshake.InfoHashLen]
 
-	//todo real torrent from db
-	t := findTorrent(hash)
+	t, _ := h.tStorage.Find(hash)
 	if t == nil {
 		return true, fmt.Errorf("could not find torrent with hash %x", hash)
 	}
 
-	//todo real id from db
-	resp := handshake.BuildBytes(t.Info.Hash, "12345678912345678912")
+	myId, err := h.sStorage.GetId()
+	if err != nil || myId == "" {
+		return true, fmt.Errorf("own peer id is not configured")
+	}
+
+	resp := handshake.BuildBytes(t.Info.Hash, myId)
 	_, err = conn.Write(resp)
 	if err != nil {
 		addr := conn.RemoteAddr()
@@ -44,10 +52,4 @@ func (h *handler) Handle(conn net.Conn) (bool, error) {
 	}
 
 	return true, nil
-}
-
-func findTorrent(hash []byte) *torrent.Torrent {
-	return &torrent.Torrent{
-		Info: &torrent.TorrentInfo{Hash: [20]byte(hash)},
-	}
 }

@@ -1,4 +1,4 @@
-package trackerclient
+package tracker
 
 import (
 	"crypto/sha1"
@@ -6,7 +6,7 @@ import (
 	"io"
 	"my-torrent/internal/modelbuilder/peers"
 	"my-torrent/internal/modelbuilder/torrent"
-	"my-torrent/lib/constants"
+	"my-torrent/internal/storage"
 	"my-torrent/lib/encode"
 	"net/http"
 	"net/url"
@@ -22,8 +22,29 @@ type arguments struct {
 	infoHash   [20]byte
 }
 
-func GetPeers(torrent *torrent.Torrent, port int) *peers.Response {
-	args := getArguments(torrent)
+type Client interface {
+	GetPeers(torrent *torrent.Torrent, port int) *peers.Response
+}
+
+type client struct {
+	sStorage storage.ServerStorage
+	tStorage storage.TorrentsStorage
+}
+
+func NewClient(ts storage.TorrentsStorage, ss storage.ServerStorage) Client {
+	return &client{
+		sStorage: ss,
+		tStorage: ts,
+	}
+}
+
+func (c *client) GetPeers(torrent *torrent.Torrent, port int) *peers.Response {
+	args, err := c.getArguments(torrent)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+
 	args.port = port
 	urls := buildUrls(torrent.Announce, torrent.AnnounceList, args)
 
@@ -38,6 +59,13 @@ func GetPeers(torrent *torrent.Torrent, port int) *peers.Response {
 		}
 
 		fmt.Printf("Request to tracker %s successfuly sent!\n", address)
+		fmt.Printf("Saving peers from tracker %s\n", address)
+
+		err = c.tStorage.SavePeers(torrent.Info.Hash[:], response.Peers)
+		if err != nil {
+			fmt.Printf("Error while savin peers from tracker %s\n", address)
+			return nil
+		}
 
 		return response
 	}
@@ -99,7 +127,7 @@ func buildUrls(announce string, announceTierList [][]string, args arguments) []*
 	return urls
 }
 
-func getArguments(torrent *torrent.Torrent) arguments {
+func (c *client) getArguments(torrent *torrent.Torrent) (arguments, error) {
 	event := "started" // stopped completed
 
 	var uploaded int64 = 0
@@ -112,8 +140,13 @@ func getArguments(torrent *torrent.Torrent) arguments {
 		}
 	}
 
+	myId, err := c.sStorage.GetId()
+	if err != nil {
+		return arguments{}, err
+	}
+
 	args := arguments{
-		peerId:     constants.PEER_ID,
+		peerId:     myId,
 		uploaded:   uploaded,
 		downloaded: downloaded,
 		left:       left,
@@ -121,5 +154,5 @@ func getArguments(torrent *torrent.Torrent) arguments {
 		infoHash:   torrent.Info.Hash,
 	}
 
-	return args
+	return args, nil
 }

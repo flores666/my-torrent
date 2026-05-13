@@ -1,6 +1,7 @@
 package db
 
 import (
+	"crypto/rand"
 	"database/sql"
 	"os"
 
@@ -144,6 +145,24 @@ CREATE TABLE IF NOT EXISTS torrent_peers (
         ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS client_identity (
+    id              INTEGER PRIMARY KEY CHECK (id = 1),
+
+    peer_id         TEXT NOT NULL CHECK (length(peer_id) = 20),
+
+    created_at      TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT OR IGNORE INTO client_identity (
+    id,
+    peer_id
+)
+VALUES (
+    1,
+    ?
+);
+
 CREATE INDEX IF NOT EXISTS idx_torrent_peers_torrent_hash
 ON torrent_peers(torrent_hash);
 
@@ -153,7 +172,9 @@ ON torrent_peers(status);
 CREATE INDEX IF NOT EXISTS idx_torrent_peers_peer_id
 ON torrent_peers(peer_id);`
 
-	_, err := db.Exec(migration)
+	peerId, _ := generatePeerID()
+
+	_, err := db.Exec(migration, peerId)
 	if err != nil {
 		return err
 	}
@@ -162,3 +183,23 @@ ON torrent_peers(peer_id);`
 }
 
 // #endregion
+
+func generatePeerID() (string, error) {
+	const prefix = "-EG1305-"
+	const totalLen = 20
+	const alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+	randomLen := totalLen - len(prefix)
+
+	buf := make([]byte, randomLen)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+
+	result := make([]byte, randomLen)
+	for i, b := range buf {
+		result[i] = alphabet[int(b)%len(alphabet)]
+	}
+
+	return prefix + string(result), nil
+}
