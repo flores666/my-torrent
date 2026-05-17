@@ -29,7 +29,9 @@ func main() {
 	trackerService := tracker.NewService(tracker.NewClient(), tStorage, sStorage)
 	_ = trackerService
 
-	server := server.NewServer(peerReader, newMessagesRouter(tStorage, sStorage), sStorage)
+	sessionsManager := p2p.NewSessionManager(tStorage)
+
+	server := server.NewServer(peerReader, newMessagesRouter(tStorage, sStorage, sessionsManager, peerReader), sStorage)
 	port, err := server.ListenAndServe()
 	if err != nil {
 		log.Fatalf("Failed to create new server, err = %v\n", err)
@@ -63,12 +65,12 @@ func main() {
 
 	fmt.Printf("Sending handshake request to %s\n", peer.Address())
 
-	session, err := peerService.Handshake(peer, torrent.Info.Hash)
+	session, err := peerService.DialHandshake(peer, torrent.Info.Hash)
 	if err != nil {
 		log.Fatalf("Error while sending handshake request, error = %v", err)
 	}
 
-	defer session.Conn.Close()
+	defer session.Close()
 }
 
 func newPeerReader() *peerreader.PeerReaderComposite {
@@ -78,9 +80,9 @@ func newPeerReader() *peerreader.PeerReaderComposite {
 	return r
 }
 
-func newMessagesRouter(tStorage storage.TorrentsStorage, sStorage storage.ServerStorage) router.MessageRouter {
+func newMessagesRouter(tStorage storage.TorrentsStorage, sStorage storage.ServerStorage, sm p2p.SessionManager, pr *peerreader.PeerReaderComposite) router.MessageRouter {
 	r := router.NewMessageRouter()
-	r.Register(handlers.NewHandshake(tStorage, sStorage).Handle)
+	r.Register(handlers.NewHandshake(tStorage, sStorage, sm, pr).Handle)
 
 	return r
 }

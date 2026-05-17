@@ -9,7 +9,7 @@ import (
 )
 
 type Service interface {
-	Handshake(peer *peers.Peer, infoHash [20]byte) (*Session, error)
+	DialHandshake(peer *peers.Peer, infoHash [20]byte) (*Session, error)
 }
 
 type service struct {
@@ -26,14 +26,14 @@ func NewService(c Client, ts storage.TorrentsStorage, ss storage.ServerStorage) 
 	}
 }
 
-func (s *service) Handshake(peer *peers.Peer, infoHash [20]byte) (*Session, error) {
+func (s *service) DialHandshake(peer *peers.Peer, infoHash [20]byte) (*Session, error) {
 	myId, err := s.serverStorage.GetId()
 	if err != nil {
 		return nil, err
 	}
 
 	myHandshake := handshake.BuildBytes(infoHash, myId)
-	session, err := s.client.Handshake(peer, myHandshake)
+	session, err := s.client.DialHandshake(peer, myHandshake)
 
 	if err != nil {
 		fmt.Println(err)

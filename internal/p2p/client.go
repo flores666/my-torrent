@@ -4,16 +4,15 @@ import (
 	"errors"
 	"fmt"
 	"my-torrent/internal/modelbuilder/peers"
+	"my-torrent/lib/constants"
 	"my-torrent/lib/peerreader"
 	"my-torrent/lib/peerreader/handshake"
 	"net"
 	"time"
 )
 
-const deadline = 5 * time.Second
-
 type Client interface {
-	Handshake(peer *peers.Peer, handshake []byte) (*Session, error)
+	DialHandshake(peer *peers.Peer, handshake []byte) (*Session, error)
 }
 
 type client struct {
@@ -24,7 +23,7 @@ func NewClient(r *peerreader.PeerReaderComposite) Client {
 	return &client{r}
 }
 
-func (c *client) Handshake(peer *peers.Peer, handhsake []byte) (*Session, error) {
+func (c *client) DialHandshake(peer *peers.Peer, handhsake []byte) (*Session, error) {
 	conn, err := sendRequest("tcp", peer.Address(), handhsake)
 	if err != nil {
 		return nil, err
@@ -47,10 +46,12 @@ func (c *client) Handshake(peer *peers.Peer, handhsake []byte) (*Session, error)
 	}
 
 	return &Session{
-		Conn:   conn,
-		PeerId: response.PeerId,
-		Ip:     peer.Ip,
-		Port:   peer.Port,
+		Conn:     conn,
+		PeerId:   response.PeerId,
+		Ip:       peer.Ip,
+		Port:     peer.Port,
+		InfoHash: response.InfoHash,
+		Done:     make(chan struct{}),
 	}, nil
 }
 
@@ -68,7 +69,7 @@ func sendRequest(network, addr string, message []byte) (net.Conn, error) {
 		return nil, err
 	}
 
-	conn.SetDeadline(time.Now().Add(deadline))
+	conn.SetDeadline(time.Now().Add(constants.TIMEOUT))
 
 	_, err = conn.Write(message)
 	if err != nil {

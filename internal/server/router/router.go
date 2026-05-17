@@ -38,6 +38,7 @@ func (r *router) Route(conn net.Conn) {
 
 	addr := conn.RemoteAddr()
 	fmt.Printf("Could not find route for message from %s:%s\n", addr.Network(), addr.String())
+	conn.Close()
 }
 
 func (r *router) Register(h func(conn net.Conn) (bool, error)) {

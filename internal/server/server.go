@@ -4,14 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"time"
 
 	"my-torrent/internal/server/router"
 	"my-torrent/internal/storage"
 	"my-torrent/lib/peerreader"
 )
-
-const deadline = 5 * time.Second
 
 type Server struct {
 	reader  *peerreader.PeerReaderComposite
