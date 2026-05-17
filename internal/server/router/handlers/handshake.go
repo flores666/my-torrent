@@ -44,7 +44,7 @@ func (h *handler) Handle(conn net.Conn) (bool, error) {
 		return true, fmt.Errorf("own peer id is not configured")
 	}
 
-	resp := handshake.BuildBytes(t.Info.Hash, "12345678912345678912") // todo
+	resp := handshake.BuildBytes(t.Info.Hash, myId)
 	_, err = conn.Write(resp)
 	if err != nil {
 		addr := conn.RemoteAddr()
