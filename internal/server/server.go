@@ -7,20 +7,23 @@ import (
 	"time"
 
 	"my-torrent/internal/server/router"
+	"my-torrent/internal/storage"
 	"my-torrent/lib/peerreader"
 )
 
 const deadline = 5 * time.Second
 
 type Server struct {
-	reader *peerreader.PeerReaderComposite
-	router router.MessageRouter
+	reader  *peerreader.PeerReaderComposite
+	router  router.MessageRouter
+	storage storage.ServerStorage
 }
 
-func NewServer(r *peerreader.PeerReaderComposite, mr router.MessageRouter) *Server {
+func NewServer(r *peerreader.PeerReaderComposite, mr router.MessageRouter, ss storage.ServerStorage) *Server {
 	return &Server{
-		reader: r,
-		router: mr,
+		reader:  r,
+		router:  mr,
+		storage: ss,
 	}
 }
 
@@ -28,6 +31,12 @@ func (s *Server) ListenAndServe() (int, error) {
 	port, listener := getFreePort()
 	if listener == nil {
 		return -1, errors.New("no available ports")
+	}
+
+	err := s.storage.SetPort(port)
+	if err != nil {
+		fmt.Println(err)
+		return -1, errors.New("failed to save port")
 	}
 
 	go func() {

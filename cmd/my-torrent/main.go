@@ -25,12 +25,11 @@ func main() {
 
 	peerReader := newPeerReader()
 
-	server := server.NewServer(peerReader, newMessagesRouter(tStorage, sStorage))
-
 	peerService := p2p.NewService(p2p.NewClient(), tStorage, sStorage, peerReader)
 	trackerService := tracker.NewService(tracker.NewClient(), tStorage, sStorage)
 	_ = trackerService
 
+	server := server.NewServer(peerReader, newMessagesRouter(tStorage, sStorage), sStorage)
 	port, err := server.ListenAndServe()
 	if err != nil {
 		log.Fatalf("Failed to create new server, err = %v\n", err)

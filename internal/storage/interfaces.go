@@ -19,4 +19,5 @@ type ServerStorage interface {
 	GetId() (string, error)
 	SetId(string) error
 	GetPort() (int, error)
+	SetPort(int) error
 }

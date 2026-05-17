@@ -16,6 +16,27 @@ func NewSqlLiteServerStorage(s *sql.DB) ServerStorage {
 	}
 }
 
+func (s *sqlliteServerStorage) SetPort(port int) error {
+	if port <= 0 || port > 65535 {
+		return fmt.Errorf("invalid port")
+	}
+
+	const query = `
+		UPDATE client_identity
+		SET
+			port = ?,
+			updated_at = CURRENT_TIMESTAMP
+		WHERE id = 1;
+	`
+
+	_, err := s.db.Exec(query, port)
+	if err != nil {
+		return fmt.Errorf("update port: %w", err)
+	}
+
+	return nil
+}
+
 func (s *sqlliteServerStorage) GetId() (string, error) {
 	const query = `
 		SELECT peer_id
