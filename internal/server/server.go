@@ -6,8 +6,8 @@ import (
 	"net"
 	"time"
 
-	"my-torrent/internal/peerclient/peerreader"
 	"my-torrent/internal/server/router"
+	"my-torrent/lib/peerreader"
 )
 
 const deadline = 5 * time.Second

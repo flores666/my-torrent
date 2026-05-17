@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"my-torrent/internal/storage"
-	"my-torrent/lib/handshake"
+	"my-torrent/lib/peerreader/handshake"
 	"net"
 )
 
@@ -44,7 +44,7 @@ func (h *handler) Handle(conn net.Conn) (bool, error) {
 		return true, fmt.Errorf("own peer id is not configured")
 	}
 
-	resp := handshake.BuildBytes(t.Info.Hash, myId)
+	resp := handshake.BuildBytes(t.Info.Hash, "12345678912345678912") // todo
 	_, err = conn.Write(resp)
 	if err != nil {
 		addr := conn.RemoteAddr()

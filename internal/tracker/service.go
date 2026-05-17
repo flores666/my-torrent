@@ -8,7 +8,7 @@ import (
 )
 
 type Service interface {
-	Announce(torrent *torrent.Torrent) []peers.Peer
+	Announce(torrent *torrent.Torrent) ([]peers.Peer, error)
 }
 
 type service struct {
@@ -27,30 +27,30 @@ func NewService(cl Client, ts storage.TorrentsStorage, ss storage.ServerStorage)
 	}
 }
 
-func (s *service) Announce(torrent *torrent.Torrent) []peers.Peer {
+func (s *service) Announce(torrent *torrent.Torrent) ([]peers.Peer, error) {
 	args, err := s.getArguments(torrent)
 	if err != nil {
 		fmt.Println(err)
-		return nil
+		return nil, err
 	}
 
 	response, err := s.client.Announce(args)
 	if err != nil {
 		fmt.Println(err)
-		return nil
+		return nil, err
 	}
 
 	fmt.Printf("Saving peers from torrent %x\n", torrent.Info.Hash)
 
 	err = s.tStorage.SavePeers(torrent.Info.Hash[:], response.Peers)
 	if err != nil {
-		fmt.Printf("Error while savin peers from torrent %x\n", torrent.Info.Hash)
-		return nil
+		fmt.Println(err)
+		return nil, fmt.Errorf("Error while saving peers from torrent %x\n", torrent.Info.Hash)
 	}
 
 	_ = response.Interval // todo: what to do with this?
 
-	return response.Peers
+	return response.Peers, nil
 }
 
 func (s *service) getPort() int {

@@ -5,14 +5,14 @@ import (
 	"log"
 	"my-torrent/internal/modelbuilder/peers"
 	"my-torrent/internal/modelbuilder/torrent"
-	"my-torrent/internal/peerclient"
-	"my-torrent/internal/peerclient/peerreader"
+	"my-torrent/internal/p2p"
 	"my-torrent/internal/server"
 	"my-torrent/internal/server/router"
 	"my-torrent/internal/server/router/handlers"
 	"my-torrent/internal/storage"
 	"my-torrent/internal/tracker"
 	"my-torrent/lib/db"
+	"my-torrent/lib/peerreader"
 )
 
 func main() {
@@ -27,7 +27,7 @@ func main() {
 
 	server := server.NewServer(peerReader, newMessagesRouter(tStorage, sStorage))
 
-	peerClient := peerclient.NewPeerClient(peerReader, tStorage, sStorage)
+	peerService := p2p.NewService(p2p.NewClient(), tStorage, sStorage, peerReader)
 	trackerService := tracker.NewService(tracker.NewClient(), tStorage, sStorage)
 	_ = trackerService
 
@@ -64,7 +64,7 @@ func main() {
 
 	fmt.Printf("Sending handshake request to %s\n", peer.Address())
 
-	response, err := peerClient.Handshake(peer, torrent.Info.Hash)
+	response, err := peerService.Handshake(peer, torrent.Info.Hash)
 	if err != nil {
 		log.Fatalf("Error while sending handshake request, error = %v", err)
 	}

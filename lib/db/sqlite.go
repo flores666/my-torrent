@@ -12,9 +12,7 @@ func MustLoadNewSqlliteDB(driverName, dbPath string) *sql.DB {
 	migrate := false
 
 	_, err := os.Stat(dbPath)
-	if err != nil {
-		migrate = true
-	}
+	migrate = err != nil
 
 	if driverName == "" {
 		panic("driver name must be not empty")

@@ -2,7 +2,7 @@ package peerreader
 
 import (
 	"errors"
-	"my-torrent/lib/handshake"
+	"my-torrent/lib/peerreader/handshake"
 )
 
 type HandshakeMessage struct {
