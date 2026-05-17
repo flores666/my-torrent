@@ -12,7 +12,7 @@ type TorrentsStorage interface {
 	SavePeers(torrentHash []byte, peers []peers.Peer) error
 	GetPeers(torrentHash []byte) ([]peers.Peer, error)
 	UpdatePeerStatus(torrentHash []byte, ip string, port int, status string) error
-	MarkPeerHandshakeReceived(infoHash []byte, peerId string, ip string, port int) error
+	MarkPeerHandshakeReceived(infoHash []byte, ip string, port int) error
 }
 
 type ServerStorage interface {

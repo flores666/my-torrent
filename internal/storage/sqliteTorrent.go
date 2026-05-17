@@ -395,14 +395,12 @@ func (s *sqlliteTorrentStorage) UpdatePeerStatus(
 
 func (s *sqlliteTorrentStorage) MarkPeerHandshakeReceived(
 	infoHash []byte,
-	peerId string,
 	ip string,
 	port int,
 ) error {
 	result, err := s.db.Exec(`
 		UPDATE torrent_peers
 		SET
-			peer_id = ?,
 			status = ?,
 			last_seen = CURRENT_TIMESTAMP,
 			last_connected_at = CURRENT_TIMESTAMP
@@ -410,7 +408,6 @@ func (s *sqlliteTorrentStorage) MarkPeerHandshakeReceived(
 		  AND ip = ?
 		  AND port = ?;
 	`,
-		peerId,
 		peerstatuses.HandshakeReceived,
 		infoHash,
 		ip,

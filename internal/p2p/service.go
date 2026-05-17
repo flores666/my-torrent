@@ -37,14 +37,17 @@ func (s *service) Handshake(peer *peers.Peer, infoHash [20]byte) (*peerreader.Ha
 
 	myHandshake := handshake.BuildBytes(infoHash, myId)
 	data, err := s.client.Handshake(peer, myHandshake)
+
 	if err != nil {
 		fmt.Println(err)
-
-		if dbErr := s.torrentsStorage.UpdatePeerStatus(infoHash[:], peer.Ip, peer.Port, peerstatuses.Failed); dbErr != nil {
-			fmt.Println(dbErr)
-		}
+		s.updatePeerStatus(infoHash[:], peer.Ip, peer.Port, peerstatuses.Failed)
 
 		return nil, err
+	}
+
+	if err = s.torrentsStorage.MarkPeerHandshakeReceived(infoHash[:], peer.Ip, peer.Port); err != nil {
+		fmt.Println(err)
+		return nil, fmt.Errorf("error while updating peer %s status\n", peer.Address())
 	}
 
 	if !handshake.ValidateResponse(myHandshake, data) {
@@ -59,10 +62,24 @@ func (s *service) Handshake(peer *peers.Peer, infoHash [20]byte) (*peerreader.Ha
 	}
 
 	fmt.Printf("successful handshake, updating peer %s status\n", peer.Address())
-	if err = s.torrentsStorage.MarkPeerHandshakeReceived(response.InfoHash[:], string(response.PeerId[:]), peer.Ip, peer.Port); err != nil {
-		fmt.Println(err)
-		return response, fmt.Errorf("error while updating peer %s status\n", peer.Address())
+
+	if dbErr := s.updatePeerStatus(infoHash[:], peer.Ip, peer.Port, peerstatuses.Ready); dbErr != nil {
+		fmt.Println(dbErr)
 	}
 
 	return response, nil
+}
+
+func (s *service) updatePeerStatus(torrentHash []byte, ip string, port int, status string) error {
+	var err error = nil
+
+	if err = s.torrentsStorage.UpdatePeerStatus(torrentHash, ip, port, status); err != nil {
+		fmt.Println(err)
+
+		if dbErr := s.torrentsStorage.UpdatePeerStatus(torrentHash, ip, port, peerstatuses.Failed); dbErr != nil {
+			fmt.Println(dbErr)
+		}
+	}
+
+	return err
 }
