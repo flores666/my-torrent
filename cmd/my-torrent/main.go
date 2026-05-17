@@ -25,7 +25,7 @@ func main() {
 
 	peerReader := newPeerReader()
 
-	peerService := p2p.NewService(p2p.NewClient(), tStorage, sStorage, peerReader)
+	peerService := p2p.NewService(p2p.NewClient(peerReader), tStorage, sStorage)
 	trackerService := tracker.NewService(tracker.NewClient(), tStorage, sStorage)
 	_ = trackerService
 
@@ -63,12 +63,12 @@ func main() {
 
 	fmt.Printf("Sending handshake request to %s\n", peer.Address())
 
-	response, err := peerService.Handshake(peer, torrent.Info.Hash)
+	session, err := peerService.Handshake(peer, torrent.Info.Hash)
 	if err != nil {
 		log.Fatalf("Error while sending handshake request, error = %v", err)
 	}
 
-	_ = response
+	defer session.Conn.Close()
 }
 
 func newPeerReader() *peerreader.PeerReaderComposite {

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"my-torrent/internal/modelbuilder/peers"
 	"my-torrent/internal/modelbuilder/torrent"
-	"my-torrent/lib/peerstatuses"
 	"strings"
 	"time"
 )
@@ -374,42 +373,6 @@ func (s *sqlliteTorrentStorage) UpdatePeerStatus(
 		status,
 		status,
 		torrentHash,
-		ip,
-		port,
-	)
-	if err != nil {
-		return err
-	}
-
-	affected, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if affected == 0 {
-		return sql.ErrNoRows
-	}
-
-	return nil
-}
-
-func (s *sqlliteTorrentStorage) MarkPeerHandshakeReceived(
-	infoHash []byte,
-	ip string,
-	port int,
-) error {
-	result, err := s.db.Exec(`
-		UPDATE torrent_peers
-		SET
-			status = ?,
-			last_seen = CURRENT_TIMESTAMP,
-			last_connected_at = CURRENT_TIMESTAMP
-		WHERE torrent_hash = ?
-		  AND ip = ?
-		  AND port = ?;
-	`,
-		peerstatuses.HandshakeReceived,
-		infoHash,
 		ip,
 		port,
 	)
