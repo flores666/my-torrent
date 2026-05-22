@@ -31,6 +31,11 @@ func MustLoadNewSqlliteDB(driverName, dbPath string) *sql.DB {
 		panic(err)
 	}
 
+	_, err = db.Exec(`PRAGMA foreign_keys = ON;`)
+	if err != nil {
+		panic(err)
+	}
+
 	if migrate {
 		if err := applyMigration(db); err != nil {
 			panic(err)
@@ -65,6 +70,19 @@ CREATE TABLE IF NOT EXISTS torrents (
     updated_at      TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS torrent_pieces (
+    torrent_hash BLOB NOT NULL,
+    piece_index  INTEGER NOT NULL,
+    completed    INTEGER NOT NULL DEFAULT 0,
+
+    PRIMARY KEY (torrent_hash, piece_index),
+
+    FOREIGN KEY (torrent_hash)
+        REFERENCES torrents(info_hash)
+        ON DELETE CASCADE,
+
+    CHECK (completed IN (0, 1))
+);
 CREATE TABLE IF NOT EXISTS torrent_files (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     torrent_hash    BLOB NOT NULL,

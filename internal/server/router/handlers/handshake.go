@@ -10,7 +10,6 @@ import (
 	"my-torrent/lib/peerreader/handshake"
 	"net"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -46,42 +45,42 @@ func (h *handler) Handle(conn net.Conn) (_ bool, err error) {
 		return false, errors.New("Error while validating handshake")
 	}
 
-	hash := body[handshake.InfoHashStart : handshake.InfoHashStart+handshake.InfoHashLen]
+	external, _ := peerreader.ReadAs[*peerreader.HandshakeMessage](h.reader, body)
 
-	t, _ := h.tStorage.Find(hash)
+	t, _ := h.tStorage.Find(external.InfoHash[:])
 	if t == nil {
-		return true, fmt.Errorf("could not find torrent with hash %x", hash)
+		return true, fmt.Errorf("could not find torrent with hash %x", external.InfoHash[:])
 	}
-
-	myId, err := h.sStorage.GetId()
-	if err != nil || myId == "" {
-		return true, fmt.Errorf("own peer id is not configured")
-	}
-
-	resp := handshake.BuildBytes(t.Info.Hash, myId)
 
 	conn.SetDeadline(time.Now().Add(constants.TIMEOUT))
 
-	_, err = conn.Write(resp)
+	myHandshake := h.buildHandshake(external.InfoHash)
+	_, err = conn.Write(myHandshake)
 	if err != nil {
 		addr := conn.RemoteAddr()
-		return true, fmt.Errorf("could not write handshake data to %s:%s", addr.Network(), addr.String())
+		return true, fmt.Errorf("could not write handshake to %s:%s", addr.Network(), addr.String())
 	}
 
-	// todo: _, err = conn.Write(bitfield)
+	bitfield, err := h.tStorage.GetPieces(external.InfoHash)
+	if err == nil && len(bitfield) > 0 {
+		_, err = conn.Write(bitfield)
+		if err != nil {
+			addr := conn.RemoteAddr()
+			return true, fmt.Errorf("could not write bitfield to %s:%s", addr.Network(), addr.String())
+		}
+	}
 
-	inHandshake, _ := peerreader.ReadAs[*peerreader.HandshakeMessage](h.reader, body)
 	ip, port := getIpAndPort(conn.RemoteAddr())
 
 	session := &p2p.Session{
 		Conn:     conn,
 		Ip:       ip,
 		Port:     port,
-		PeerId:   inHandshake.PeerId,
-		InfoHash: inHandshake.InfoHash,
+		PeerId:   external.PeerId,
+		InfoHash: external.InfoHash,
 	}
-	err = h.manager.Start(session)
 
+	err = h.manager.Start(session)
 	if err != nil {
 		return true, err
 	}
@@ -89,8 +88,15 @@ func (h *handler) Handle(conn net.Conn) (_ bool, err error) {
 	return true, nil
 }
 
+func (h *handler) buildHandshake(hash [20]byte) []byte {
+	myId, _ := h.sStorage.GetId()
+
+	return handshake.BuildBytes(hash, myId)
+}
+
 func getIpAndPort(addr net.Addr) (string, int) {
-	parts := strings.Split(addr.String(), ":")
-	port, _ := strconv.Atoi(parts[1])
-	return parts[0], port
+	host, portStr, _ := net.SplitHostPort(addr.String())
+
+	port, _ := strconv.Atoi(portStr)
+	return host, port
 }

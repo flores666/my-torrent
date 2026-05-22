@@ -32,3 +32,9 @@ type TorrentFile struct {
 	Path   []string // hierarchical file path (directories + filename)
 	MD5Sum []byte   // MD5 checksum of the file (legacy field, rarely used)
 }
+
+type TorrentPiece struct {
+	TorrentHash []byte
+	PieceIndex  int
+	Completed   bool
+}

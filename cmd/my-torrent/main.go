@@ -70,7 +70,7 @@ func main() {
 		log.Fatalf("Error while sending handshake request, error = %v", err)
 	}
 
-	defer session.Close()
+	sessionsManager.Start(session)
 }
 
 func newPeerReader() *peerreader.PeerReaderComposite {

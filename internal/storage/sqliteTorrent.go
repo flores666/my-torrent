@@ -392,6 +392,66 @@ func (s *sqlliteTorrentStorage) UpdatePeerStatus(
 	return nil
 }
 
+func (s *sqlliteTorrentStorage) InitPieces(infoHash []byte, piecesCount int) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	stmt, err := tx.Prepare(`
+		INSERT OR IGNORE INTO torrent_pieces (
+			torrent_hash,
+			piece_index,
+			completed
+		)
+		VALUES (?, ?, 0)
+	`)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	for i := range piecesCount {
+		if _, err := stmt.Exec(infoHash, i); err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
+func (s *sqlliteTorrentStorage) GetPieces(torrentHash [20]byte) ([]byte, error) {
+	rows, err := s.db.Query(`
+			SELECT completed
+			FROM torrent_pieces
+			WHERE torrent_hash = ?
+			ORDER BY piece_index
+		`, torrentHash)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var pieces []byte
+
+	for rows.Next() {
+		var completed byte
+
+		if err := rows.Scan(&completed); err != nil {
+			return nil, err
+		}
+
+		pieces = append(pieces, completed)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return pieces, nil
+}
+
 // helpers
 
 func boolToInt(v bool) int {
