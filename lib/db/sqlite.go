@@ -83,6 +83,7 @@ CREATE TABLE IF NOT EXISTS torrent_pieces (
 
     CHECK (completed IN (0, 1))
 );
+
 CREATE TABLE IF NOT EXISTS torrent_files (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     torrent_hash    BLOB NOT NULL,
@@ -144,7 +145,8 @@ CREATE TABLE IF NOT EXISTS torrent_peers (
     torrent_hash        BLOB NOT NULL,
 
     peer_id             TEXT,
-
+    bitfield 			BLOB,
+    
     ip                  TEXT NOT NULL,
     port                INTEGER NOT NULL CHECK (port > 0 AND port <= 65535),
 
