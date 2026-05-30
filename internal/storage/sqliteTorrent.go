@@ -211,7 +211,7 @@ func (s *sqlliteTorrentStorage) Remove(hashInfo []byte) error {
 	return err
 }
 
-func (s *sqlliteTorrentStorage) SavePeers(torrentHash []byte, peers []peers.Peer) error {
+func (s *sqlliteTorrentStorage) SavePeers(torrentHash []byte, peers []*peers.Peer) error {
 	if len(torrentHash) != 20 {
 		return fmt.Errorf("torrent hash must be 20 bytes")
 	}

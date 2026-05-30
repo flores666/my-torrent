@@ -9,7 +9,7 @@ type TorrentsStorage interface {
 	Save(*torrent.Torrent) error
 	Find([]byte) (*torrent.Torrent, error)
 	Remove([]byte) error
-	SavePeers(torrentHash []byte, peers []peers.Peer) error
+	SavePeers(torrentHash []byte, peers []*peers.Peer) error
 	GetPeers(torrentHash []byte) ([]peers.Peer, error)
 	UpdatePeerStatus(torrentHash []byte, ip string, port int, status string) error
 	InitPieces(infoHash []byte, piecesCount int) error

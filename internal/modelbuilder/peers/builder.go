@@ -4,8 +4,8 @@ import (
 	"fmt"
 )
 
-func BuildPeers(pMaps []any) ([]Peer, error) {
-	peers := make([]Peer, 0)
+func BuildPeers(pMaps []any) ([]*Peer, error) {
+	peers := make([]*Peer, 0)
 
 	for _, pm := range pMaps {
 		peer := Peer{}
@@ -30,7 +30,7 @@ func BuildPeers(pMaps []any) ([]Peer, error) {
 			}
 		}
 
-		peers = append(peers, peer)
+		peers = append(peers, &peer)
 	}
 
 	return peers, nil

@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"my-torrent/internal/modelbuilder/peers"
 	"my-torrent/internal/modelbuilder/torrent"
 	"my-torrent/internal/p2p"
 	"my-torrent/internal/server"
@@ -11,8 +10,10 @@ import (
 	"my-torrent/internal/server/router/handlers"
 	"my-torrent/internal/storage"
 	"my-torrent/internal/tracker"
+	"my-torrent/lib/constants"
 	"my-torrent/lib/db"
 	"my-torrent/lib/peerreader"
+	"my-torrent/lib/slicesextensions"
 )
 
 func main() {
@@ -37,7 +38,7 @@ func main() {
 		log.Fatalf("Failed to create new server, err = %v\n", err)
 	}
 
-	fmt.Println("Server started")
+	fmt.Printf("Server started on port %d\n", port)
 
 	// #endregion dependencies
 
@@ -51,26 +52,23 @@ func main() {
 		log.Fatalln(err.Error())
 	}
 
-	//peersResponse := trackerClient.GetPeers(torrent, port)
-	//pList, _ := tStorage.GetPeers(torrent.Info.Hash[:])
-	//peer := peers.PickPeer(pList, port)
-
-	peer := peers.PickPeer([]peers.Peer{
-		{
-			Id:   "-EG0000-6wfG2wk6wFOi",
-			Ip:   "localhost",
-			Port: port,
-		},
-	}, port)
-
-	fmt.Printf("Sending handshake request to %s\n", peer.Address())
-
-	session, err := peerService.DialHandshake(peer, torrent.Info.Hash)
+	pList, err := trackerService.Announce(torrent)
 	if err != nil {
-		log.Fatalf("Error while sending handshake request, error = %v", err)
+		log.Fatalln(err)
 	}
 
-	sessionsManager.Start(session)
+	pickedRand := slicesextensions.PickN(pList, constants.MAX_PEER_CONNECTIONS)
+
+	for _, peer := range pickedRand {
+		fmt.Printf("Sending handshake request to %s\n", peer.Address())
+
+		session, err := peerService.DialHandshake(peer, torrent.Info.Hash)
+		if err != nil {
+			log.Fatalf("Error while sending handshake request, error = %v", err)
+		}
+
+		sessionsManager.Start(session)
+	}
 }
 
 func newPeerReader() *peerreader.PeerReaderComposite {

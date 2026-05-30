@@ -8,7 +8,7 @@ import (
 )
 
 type Service interface {
-	Announce(torrent *torrent.Torrent) ([]peers.Peer, error)
+	Announce(torrent *torrent.Torrent) ([]*peers.Peer, error)
 }
 
 type service struct {
@@ -27,7 +27,7 @@ func NewService(cl Client, ts storage.TorrentsStorage, ss storage.ServerStorage)
 	}
 }
 
-func (s *service) Announce(torrent *torrent.Torrent) ([]peers.Peer, error) {
+func (s *service) Announce(torrent *torrent.Torrent) ([]*peers.Peer, error) {
 	args, err := s.getArguments(torrent)
 	if err != nil {
 		fmt.Println(err)

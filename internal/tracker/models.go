@@ -18,5 +18,5 @@ type arguments struct {
 
 type AnnounceResponse struct {
 	Interval int
-	Peers    []peers.Peer
+	Peers    []*peers.Peer
 }
