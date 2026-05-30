@@ -13,7 +13,6 @@ import (
 	"my-torrent/lib/constants"
 	"my-torrent/lib/db"
 	"my-torrent/lib/peerreader"
-	"my-torrent/lib/slicesextensions"
 )
 
 func main() {
@@ -57,9 +56,9 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	pickedRand := slicesextensions.PickN(pList, constants.MAX_PEER_CONNECTIONS)
+	for i, connectedCount := 0, 0; i < len(pList) && connectedCount < constants.MAX_DOWNLOAD_SLOTS; i++ {
+		peer := pList[i]
 
-	for _, peer := range pickedRand {
 		fmt.Printf("Sending handshake request to %s\n", peer.Address())
 
 		session, err := peerService.DialHandshake(peer, torrent.Info.Hash)
@@ -67,7 +66,10 @@ func main() {
 			log.Fatalf("Error while sending handshake request, error = %v", err)
 		}
 
-		sessionsManager.Start(session)
+		err = sessionsManager.Download(session)
+		if err != nil {
+			connectedCount++
+		}
 	}
 }
 

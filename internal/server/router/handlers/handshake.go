@@ -80,7 +80,7 @@ func (h *handler) Handle(conn net.Conn) (_ bool, err error) {
 		InfoHash: external.InfoHash,
 	}
 
-	err = h.manager.Start(session)
+	err = h.manager.Upload(session)
 	if err != nil {
 		return true, err
 	}

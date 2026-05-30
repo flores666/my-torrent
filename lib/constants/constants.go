@@ -4,9 +4,10 @@ import "time"
 
 const P2P_MESSAGE_TYPES_COUNT = 12
 
+const MAX_PEER_CONNECTIONS = 30
+
 const (
-	MAX_PEER_CONNECTIONS   = 30
-	MAX_ACTIVE_DOWNLOADS   = 8
+	MAX_DOWNLOAD_SLOTS     = 15
 	MAX_IN_FLIGHT_PER_PEER = 5
 	BLOCK_SIZE             = 16 * 1024
 )
@@ -21,3 +22,5 @@ const (
 	WRITE_TIMEOUT = 5 * time.Second
 	TIMEOUT       = 5 * time.Second
 )
+
+const KEEP_ALIVE_PERIOD_MINUTES = 2 * time.Minute

@@ -21,8 +21,10 @@ type Session struct {
 
 	Bitfield []byte
 
-	Done      chan struct{}
+	Done chan struct{}
+
 	closeOnce sync.Once
+	wm        sync.Mutex
 }
 
 func (s *Session) Close() error {
@@ -34,4 +36,11 @@ func (s *Session) Close() error {
 	})
 
 	return err
+}
+
+// Write writes data to the connection with mutex lock
+func (s *Session) Write(data []byte) (int, error) {
+	s.wm.Lock()
+	defer s.wm.Unlock()
+	return s.Conn.Write(data)
 }
