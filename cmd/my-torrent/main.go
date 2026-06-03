@@ -5,6 +5,8 @@ import (
 	"log"
 	"my-torrent/internal/modelbuilder/torrent"
 	"my-torrent/internal/p2p"
+	"my-torrent/internal/p2p/sessionrouter"
+	"my-torrent/internal/p2p/sessionrouter/sessionroutes"
 	"my-torrent/internal/server"
 	"my-torrent/internal/server/router"
 	"my-torrent/internal/server/router/handlers"
@@ -29,7 +31,8 @@ func main() {
 	trackerService := tracker.NewService(tracker.NewClient(), tStorage, sStorage)
 	_ = trackerService
 
-	sessionsManager := p2p.NewSessionManager(tStorage)
+	sessionRouter := newSessionMessageRouter(tStorage)
+	sessionsManager := p2p.NewSessionManager(tStorage, sessionRouter)
 
 	server := server.NewServer(peerReader, newMessagesRouter(tStorage, sStorage, sessionsManager, peerReader), sStorage)
 	port, err := server.ListenAndServe()
@@ -71,6 +74,13 @@ func main() {
 			connectedCount++
 		}
 	}
+}
+
+func newSessionMessageRouter(tStorage storage.TorrentsStorage) sessionrouter.Router {
+	r := sessionrouter.NewRouter()
+	r.Register(sessionroutes.NewBitfieldMessageHandler(tStorage))
+
+	return r
 }
 
 func newPeerReader() *peerreader.PeerReaderComposite {

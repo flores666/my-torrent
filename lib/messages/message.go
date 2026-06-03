@@ -40,3 +40,11 @@ func ReadBody(conn net.Conn) ([]byte, error) {
 
 	return append(prefix[:], body...), nil
 }
+
+func GetLength(msg []byte) uint32 {
+	return binary.BigEndian.Uint32(msg[:4])
+}
+
+func GetId(msg []byte) uint8 {
+	return msg[4]
+}

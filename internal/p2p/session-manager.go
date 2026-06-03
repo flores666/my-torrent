@@ -3,6 +3,7 @@ package p2p
 import (
 	"errors"
 	"fmt"
+	"my-torrent/internal/p2p/sessionrouter"
 	"my-torrent/internal/storage"
 	"my-torrent/lib/constants"
 	"my-torrent/lib/messages"
@@ -30,9 +31,10 @@ type sessionManager struct {
 	keepAliveRequests map[*Session]keepAliveFunc
 	km                sync.Mutex
 	torrentStorage    storage.TorrentsStorage
+	router            sessionrouter.Router
 }
 
-func NewSessionManager(ts storage.TorrentsStorage) SessionManager {
+func NewSessionManager(ts storage.TorrentsStorage, sr sessionrouter.Router) SessionManager {
 	return &sessionManager{
 		torrentStorage:    ts,
 		uploads:           make([]*Session, 0, constants.MAX_UPLOAD_SLOTS),
@@ -40,6 +42,7 @@ func NewSessionManager(ts storage.TorrentsStorage) SessionManager {
 		keepAliveRequests: make(map[*Session]keepAliveFunc),
 		um:                sync.Mutex{},
 		dm:                sync.Mutex{},
+		router:            sr,
 	}
 }
 
@@ -98,7 +101,7 @@ func (s *sessionManager) uploadLoop(session *Session) {
 		_ = s.torrentStorage.UpdatePeerStatus(session.InfoHash[:], session.Ip, session.Port, peerstatuses.Disconnected)
 	}()
 
-	stateMachine(session)
+	s.handleRequests(session)
 }
 
 func (s *sessionManager) downloadLoop(session *Session) {
@@ -118,10 +121,10 @@ func (s *sessionManager) downloadLoop(session *Session) {
 	}()
 
 	s.keepAlive(session)
-	stateMachine(session)
+	s.handleRequests(session)
 }
 
-func stateMachine(session *Session) {
+func (s *sessionManager) handleRequests(session *Session) {
 	for {
 		select {
 		case <-session.Done:
@@ -133,7 +136,11 @@ func stateMachine(session *Session) {
 				return
 			}
 
-			_ = msg
+			err = s.router.Route(session.PeerId[:], session.InfoHash[:], msg)
+			if err != nil {
+				fmt.Printf("Error while handling peer message = %v\n", err)
+				return
+			}
 		}
 	}
 }

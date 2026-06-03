@@ -24,3 +24,16 @@ const (
 )
 
 const KEEP_ALIVE_PERIOD_MINUTES = 2 * time.Minute
+
+const (
+	MID_CHOKE          uint8 = 0
+	MID_UNCHOKE        uint8 = 1
+	MID_INTERESTED     uint8 = 2
+	MID_NOT_INTERESTED uint8 = 3
+	MID_HAVE           uint8 = 4
+	MID_BITFIELD       uint8 = 5
+	MID_REQUEST        uint8 = 6
+	MID_PIECE          uint8 = 7
+	MID_CANCEL         uint8 = 8
+	MID_PORT           uint8 = 9
+)

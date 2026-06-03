@@ -392,6 +392,43 @@ func (s *sqlliteTorrentStorage) UpdatePeerStatus(
 	return nil
 }
 
+func (s *sqlliteTorrentStorage) UpdatePeerBitfield(peerId, torrentHash, bitfield []byte) error {
+	if len(torrentHash) != 20 {
+		return fmt.Errorf("torrent hash must be 20 bytes")
+	}
+
+	if len(peerId) != 20 {
+		return fmt.Errorf("peerID must be 20 bytes")
+	}
+
+	result, err := s.db.Exec(`
+		UPDATE torrent_peers
+		SET
+			bitfield = ?,
+			last_seen = CURRENT_TIMESTAMP
+		WHERE torrent_hash = ?
+		  AND peer_id = ?;
+	`,
+		bitfield,
+		torrentHash,
+		peerId,
+	)
+	if err != nil {
+		return err
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if affected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
+
 func (s *sqlliteTorrentStorage) InitPieces(infoHash []byte, piecesCount int) error {
 	tx, err := s.db.Begin()
 	if err != nil {
